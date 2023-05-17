@@ -17,6 +17,8 @@ As explained in Section 4.5 of the paper, for the methods which provide a confid
 
 
 ### A.3. Evaluation Metrics.
+The main eva
+Barcode assignments are evaluated at both spot-level and cell-level
 Evaluation metrics are based on the cell calling assignments. Following figure illustrates the distinction among the various types of barcode assignments used in the evaluation metrics. The codebook inputted to the decoding algorithms contains two sets of barcodes:
 - **Targeted** barcodes which form the experimental codebook or the experiments reference library of barcodes.
 - **Trick** barcodes which are a set of artifically generated barcodes that are Not in the experimental codebook but are faked and can be used for assessing the overfitting issues a decoding algorithm may have.
