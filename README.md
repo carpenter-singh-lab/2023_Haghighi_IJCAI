@@ -32,7 +32,7 @@ As described in Section A.2, NGS-based relative abundance of each barcode in the
     - $FDR$ Incorrect assignment rates for two categories of "trick" and "not-targeted-nor-trick" calls are reported as False Discovery Rates (FDR) and are denoted as $FDR_{trick}$ and $FDR_{other}$ respectively.
 
 - ### Recovery Rate. 
-  - Recovery rate is defined as the ratio of the number of targeted cell assignments over the total number of detected cells by CellProfiler. Note that there are a number of cells that dont recieve any barcode assignments and therefore this number is different than
+  - Recovery rate is defined as the ratio of the number of targeted cell assignments over the total number of detected cells by CellProfiler. Note that there are a number of cells that dont recieve any barcode assignments and therefore this number is different than the PPV at the cell level.
  
 
 
