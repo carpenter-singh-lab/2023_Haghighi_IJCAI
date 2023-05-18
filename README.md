@@ -31,10 +31,10 @@ The next set of metrics are for false discovery analysis and are calculated at b
 - **Trick** barcodes which are a set of artifically generated barcodes that are not in the experimental codebook but are faked and can be used for assessing the overfitting issues a decoding algorithm may have.
 ![](./documentation/images/codebooks2.png)
 
-A decoding method can generally assign spots to any sequence of base letters and therefore a third category of "not-targeted-nor-trick" include the rest of assignmnets that are not targeted nor trick barcodes.
+A decoding method can generally assign spots to any sequence of base letters and therefore there exists a third category of "not-targeted-nor-trick" which include the rest of assignmnets that are not targeted nor trick barcodes.
 
 - $FDR$: Incorrect assignment rates for two categories of "trick" and "not-targeted-nor-trick" calls are reported as False Discovery Rates (FDR) and are denoted as $FDR_{trick}$ and $FDR_{other}$ respectively.
-- $PPV$: Correct assignment rate refers to the ratio of the calls which are in the targeted list and serves as a quality metric for a barcode calling method. We report this metric as the Positive Predictive Value (PPV) at each barcode and cell level detections.
+- $PPV$: Correct assignment rate refers to the rate of the targeted assignments which is $1-FDR$. We report this metric as the Positive Predictive Value ($PPV$) at each spot and cell-level barcode assignments as well.
 
     
 
