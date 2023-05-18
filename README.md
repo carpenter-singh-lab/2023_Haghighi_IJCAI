@@ -17,24 +17,33 @@ As explained in Section 4.5 of the paper, for the methods which provide a confid
 
 
 ### A.3. Evaluation Metrics.
-The main eva
-Barcode assignments are evaluated at both spot-level and cell-level
-Evaluation metrics are based on the cell calling assignments. Following figure illustrates the distinction among the various types of barcode assignments used in the evaluation metrics. The codebook inputted to the decoding algorithms contains two sets of barcodes:
-- **Targeted** barcodes which form the experimental codebook or the experiments reference library of barcodes.
-- **Trick** barcodes which are a set of artifically generated barcodes that are Not in the experimental codebook but are faked and can be used for assessing the overfitting issues a decoding algorithm may have.
-![](./documentation/images/codebooks2.png)
+We aim to achieve the highest possible number of cells with a correct barcode assignment. Therefore, the main evaluation metrics are rate of cell recovery and the matches between abundance of cell assignments and the NGS-based barcode abundance:
+
+- ### Cell Recovery Rate. 
+  - Recovery rate is defined as the ratio of cell assignments with a targeted barcode over the total number of detected cells by CellProfiler. Note that there are a number of cells that dont recieve any barcode assignments and therefore this number is different than the PPV at the cell level.
 
 - ### NGS match. 
-As described in Section A.2, NGS-based relative abundance of each barcode in the experiment serves as an indirect ground truth to assess the quality of the relative abundance of the detected barcodes assigned to the cells that exist in the experimental codebook. The similarity between the abundance of the detected cell assignments and the NGS-based abundance of codebook barcodes is measured by $R^2$ between the two abundance distributions.
+As described in Section A.2, NGS-based relative abundance of each barcode in the experiment serves as an indirect ground truth to assess the quality of the relative abundance of the detected barcodes assigned to the cells which also exist in the experimental codebook. The similarity between the abundance of the detected cell-level barcode assignments and the NGS-based abundance of codebook barcodes is measured by $R^2$ between the two abundance distributions.
 
-- ### Assignment Rates. 
+- ### False Discovery Analysis. 
+The next set of metrics are calculated for false discovery analysis. Following figure illustrates the distinction among the various types of barcode assignments used in the evaluation metrics. The codebook inputted to the decoding algorithms contains two sets of barcodes:
+- **Targeted** barcodes which form the experimental codebook or the experiments reference library of barcodes.
+- **Trick** barcodes which are a set of artifically generated barcodes that are not in the experimental codebook but are faked and can be used for assessing the overfitting issues a decoding algorithm may have.
+![](./documentation/images/codebooks2.png)
+
+<!-- - ### Assignment Rates.  -->
     
     - $PPV$ Correct assignment rate refers to the ratio of the calls which are in the targeted list and serves as a quality metric for a barcode calling method. We report this metric as the Positive Predictive Value (PPV) at each barcode and cell level detections.
 
     - $FDR$ Incorrect assignment rates for two categories of "trick" and "not-targeted-nor-trick" calls are reported as False Discovery Rates (FDR) and are denoted as $FDR_{trick}$ and $FDR_{other}$ respectively.
+- Barcode assignments are evaluated at both spot-level and cell-level 
+Evaluation metrics are based on the cell calling assignments. 
 
-- ### Recovery Rate. 
-  - Recovery rate is defined as the ratio of the number of targeted cell assignments over the total number of detected cells by CellProfiler. Note that there are a number of cells that dont recieve any barcode assignments and therefore this number is different than the PPV at the cell level.
+
+
+
+
+
  
 
 
