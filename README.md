@@ -9,7 +9,7 @@
 
 - [Benchmark In-situ sequencing resource](#toc-dataset)
   - [Image dataset](#toc-imgs)
-  - [Validation resource for cell-level barcode abundance in a pool of single cells](#toc-ngs-resource)
+  - [Validation resource (NGS)](#toc-ngs-resource)
   - [Evaluation Metrics](#toc-eval-metrics)
 
   
