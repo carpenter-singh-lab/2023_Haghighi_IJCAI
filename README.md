@@ -63,8 +63,9 @@ A decoding method can generally assign spots to any sequence of base letters and
 
 ## <a id="toc-results"></a>Results
 ### <a id="toc-t1"></a>Table.1
-- TODO
-### <a id="toc-t2"></a>Table.2
+- TO BE ADDED
+### <a id="toc-t2"></a>Table.2 Ablation experiments
+
 
 | Strategy | LQ <br> NGS Match <br> ($R^2$) | LQ <br> Cell Recovery <br> (Rate) | HQ <br> NGS Match <br> ($R^2$) | HQ <br> Cell Recovery <br> (Rate) |
 | --- | --- | --- | --- | --- |
@@ -74,11 +75,13 @@ A decoding method can generally assign spots to any sequence of base letters and
 
 
 
-### <a id="toc-t3"></a>Table.3
+### <a id="toc-t3"></a>Table.3 Comparison to Baseline SOTA ISS Decoders
+- We have adopted the public source code for each Starfish, Postcode, ISTDECO and BarDensr for their application into our dataset. The adopted scripts can be found in the baseline generation repository:
+   - [Baseline Methods Application Repo](https://github.com/broadinstitute/Barcode_Benchmark_Periscope)
 
+- Script X can be used For generating the PLePI-ISS results in this table.
 
-
-
+- Add Table
 
  
 
