@@ -28,7 +28,7 @@ As described in Section A.2, NGS-based relative abundance of each barcode in the
 - ### False Discovery Analysis. 
 The next set of metrics are for false discovery analysis and are calculated at both spot-level and cell-level barcode assignments. Following figure illustrates the distinction among the various possible types of barcode assignments. The codebook inputted to the decoding algorithms contains two sets of barcodes:
 - **Targeted** barcodes which form the experimental codebook or the experiments reference library of barcodes.
-- **Trick** barcodes which are a set of artifically generated barcodes that are not in the experimental codebook but are faked and can be used for assessing the overfitting issues a decoding algorithm may have.
+- **Trick** barcodes are a collection of intentionally fabricated barcodes that, although not part of the original experimental codebook, are added to the codebook inputted to the decoding algorithms. These barcodes, once introduced into the decoding algorithms, serve as an insightful tool for false discovery analysis, aiding in the identification and assessment of potential overfitting issues inherent in the decoding process.
 ![](./documentation/images/codebooks2.png)
 
 A decoding method can generally assign spots to any sequence of base letters and therefore there exists a third category of "not-targeted-nor-trick" which include the rest of assignmnets that are not targeted nor trick barcodes.
