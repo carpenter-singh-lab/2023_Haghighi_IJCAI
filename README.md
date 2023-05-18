@@ -1,11 +1,11 @@
-# Pseudo-Labeling Enhanced by Privileged Information\\ and its application to In Situ Sequencing Images
+# Pseudo-Labeling Enhanced by Privileged Information and its application to In Situ Sequencing Images
 
 
  [Link to Paper](will be added once published)
  [Link to supplementary materials](supplementary materials)
  
  
- # Table of Contents
+ ## Table of Contents
 
 - [Benchmark In-situ sequencing resource](#toc-dataset)
   - [Image dataset](#toc-imgs)
@@ -61,10 +61,10 @@ A decoding method can generally assign spots to any sequence of base letters and
 
     
 
-## <a id="toc-results"></a>A. Results
-### <a id="toc-t1"></a>A. Table.1
-### <a id="toc-t2"></a>A. Table.2
-### <a id="toc-t3"></a>A. Table.3
+## <a id="toc-results"></a>Results
+### <a id="toc-t1"></a>Table.1
+### <a id="toc-t2"></a>Table.2
+### <a id="toc-t3"></a>Table.3
 
 
 
