@@ -26,18 +26,18 @@ We aim to achieve the highest possible number of cells with a correct barcode as
 As described in Section A.2, NGS-based relative abundance of each barcode in the experiment serves as an indirect ground truth to assess the quality of the relative abundance of the detected barcodes assigned to the cells which also exist in the experimental codebook. The similarity between the abundance of the detected cell-level barcode assignments and the NGS-based abundance of codebook barcodes is measured by $R^2$ between the two abundance distributions.
 
 - ### False Discovery Analysis. 
-The next set of metrics are calculated for false discovery analysis. Following figure illustrates the distinction among the various types of barcode assignments used in the evaluation metrics. The codebook inputted to the decoding algorithms contains two sets of barcodes:
+The next set of metrics are for false discovery analysis and are calculated at both spot-level and cell-level barcode assignments. Following figure illustrates the distinction among the various possible types of barcode assignments. The codebook inputted to the decoding algorithms contains two sets of barcodes:
 - **Targeted** barcodes which form the experimental codebook or the experiments reference library of barcodes.
 - **Trick** barcodes which are a set of artifically generated barcodes that are not in the experimental codebook but are faked and can be used for assessing the overfitting issues a decoding algorithm may have.
 ![](./documentation/images/codebooks2.png)
 
-<!-- - ### Assignment Rates.  -->
-    
-    - $PPV$ Correct assignment rate refers to the ratio of the calls which are in the targeted list and serves as a quality metric for a barcode calling method. We report this metric as the Positive Predictive Value (PPV) at each barcode and cell level detections.
+A decoding method can generally assign spots to any sequence of base letters and therefore a third category of "not-targeted-nor-trick" include the rest of assignmnets that are not targeted nor trick barcodes.
 
-    - $FDR$ Incorrect assignment rates for two categories of "trick" and "not-targeted-nor-trick" calls are reported as False Discovery Rates (FDR) and are denoted as $FDR_{trick}$ and $FDR_{other}$ respectively.
-- Barcode assignments are evaluated at both spot-level and cell-level 
-Evaluation metrics are based on the cell calling assignments. 
+- $FDR$: Incorrect assignment rates for two categories of "trick" and "not-targeted-nor-trick" calls are reported as False Discovery Rates (FDR) and are denoted as $FDR_{trick}$ and $FDR_{other}$ respectively.
+- $PPV$: Correct assignment rate refers to the ratio of the calls which are in the targeted list and serves as a quality metric for a barcode calling method. We report this metric as the Positive Predictive Value (PPV) at each barcode and cell level detections.
+
+    
+
 
 
 
