@@ -1,22 +1,45 @@
-### 2023_Haghighi_IJCAI
+# Pseudo-Labeling Enhanced by Privileged Information\\ and its application to In Situ Sequencing Images
 
 
-## A. Benchmark In-situ sequencing resource
-### A.1. Image dataset
+ [Link to Paper](will be added once published)
+ [Link to supplementary materials](supplementary materials)
+ 
+ 
+ # Table of Contents
+
+- [Benchmark In-situ sequencing resource](#toc-dataset)
+  - [Image dataset](#toc-imgs)
+  - [Validation resource for cell-level barcode abundance in a pool of single cells](#toc-ngs-resource)
+  - [Evaluation Metrics](#toc-eval-metrics)
+
+  
+- [Results](#toc-results)
+  - [Table 1](#toc-t1)
+    - TODO - link cleaned repo specific to this experiment 
+  - [Table 2](#toc-t2)
+    - Ablation experiments to check the effect of annotation quality and incorporation of privileged information
+  - [Table 3](#toc-t3)
+    - Benchmarking experiments and baseline comparison
+
+
+
+## <a id="toc-dataset"></a>A. Benchmark In-situ sequencing resource
+### <a id="toc-imgs"></a> A.1. Image dataset
 
 We created a benchmark dataset of cells treated with a library of genetic reagents tagged with 186 barcodes of nine digits each. We provide two plate of cells consists of two rows and three columns of wells. Each well contains about 500000 single cells and 20 million four-channel spots in ISS images of nine cycles. Not all cells have spots, and some cells have more than one spot. Each well is imaged at 316 sites (locations) within the well; we used our in-house pipelines to correct for general microscopic illumination patterns on each image and align the images across cycles in order to correct for small differences in physical plate position on the microscope for each cycle’s imaging. The images are subsequently stitched, scaled, and recropped into 100 larger "pseudo-site" images. Each pseudo-site’s image dimensions are (x:5500, y:5500, channels:4, cycles:9). 
 
 This preprocessed dataset available at cell-painting-gallery s3 bucket as a bench-marking resource for developing computational barcode calling methods using ISS images.
 - [Link to the data in Gallery](x)
 
-### A.2. Validation resource for cell-level barcode abundance in a pool of single cells.
+
+### <a id="toc-ngs-resource"></a>A.2. Validation resource for cell-level barcode abundance in a pool of single cells.
 As there is no direct ground truth for the barcodes assigned to each image location, we evaluate the barcode calling performance in an indirect way. By applying Next-Generation-Sequencing (NGS) on the pooled screens we can quantify the expressed integrated barcodes. We applied NGS to a separate sample of the same cell population that was placed into the 6 wells of our plate, enabling us to count the number of cells perturbed by each barcode. Abundance of transcripts for these genomically integrated barcodes were captured by kallisto tool. Abundance of barcodes based on any decoding strategy applied on this dataset can be calculated as a post-processing step. We can then compare barcode calling strategies to the NGS abundance measures as the experiments’ ``perturbation abundance ground-truth".
 The NGS data is at the bulk level, i.e. a pool of cells are all sequenced together. Because each barcode integrates into the cell’s DNA once and only once, and most cells receive only a single integration due to our experimental setup, the NGS information approximates the abundance of cells with a specific transcript or barcode. By contrast, the image-based barcode calling methods read out mRNA spots which can be present in variable copy numbers per cell rather than genomic DNA (which is present in only one copy per cell). For this reason, we cannot expect the number of NGS reads of barcoded cells to linearly correlate with the number of image-based reads of barcoded mRNA transcripts; to assess correlation of our results with NGS data we therefore first need to assign barcode spots to cells to produce cell-level barcode assignments. 
 As explained in Section 4.5 of the paper, for the methods which provide a confidence metric on detected barcodes, we assign each cell with the most confident barcode within that cell. For the methods with no confidence scores on the detected barcodes, we assign the barcode with the largest number of occurrence to each cell. And in the case of multiple barcodes with equal occurrence rate, we simply skip the cell assignment.
 - [NGS data](https://github.com/carpenter-singh-lab/2023_Haghighi_IJCAI/blob/main/resource/CP228_NGS_Reads_And_Library_Mapped.csv)
 
 
-### A.3. Evaluation Metrics.
+### <a id="toc-eval-metrics"></a>A.3. Evaluation Metrics.
 We aim to achieve the highest possible number of cells with a correct barcode assignment. Therefore, the main evaluation metrics are rate of cell recovery and the matches between abundance of cell assignments and the NGS-based barcode abundance:
 
 - ### Cell Recovery Rate. 
@@ -38,7 +61,10 @@ A decoding method can generally assign spots to any sequence of base letters and
 
     
 
-
+## <a id="toc-results"></a>A. Results
+### <a id="toc-t1"></a>A. Table.1
+### <a id="toc-t2"></a>A. Table.2
+### <a id="toc-t3"></a>A. Table.3
 
 
 
