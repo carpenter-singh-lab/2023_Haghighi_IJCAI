@@ -1,8 +1,8 @@
 # Pseudo-Labeling Enhanced by Privileged Information and its application to In Situ Sequencing Images
 
 
- [Link to Paper](will be added once published)
- [Link to supplementary materials](supplementary materials)
+ - [Link to Paper](will be added once published)
+ - [Link to supplementary materials](dont forget to add once completed before camera ready deadline)
  
  
  ## Table of Contents
@@ -63,7 +63,17 @@ A decoding method can generally assign spots to any sequence of base letters and
 
 ## <a id="toc-results"></a>Results
 ### <a id="toc-t1"></a>Table.1
+- TODO
 ### <a id="toc-t2"></a>Table.2
+
+| Strategy | LQ <br> NGS Match <br> ($R^2$) | LQ <br> Cell Recovery <br> (Rate) | HQ <br> NGS Match <br> ($R^2$) | HQ <br> Cell Recovery <br> (Rate) |
+| --- | --- | --- | --- | --- |
+| - | 0.81 | 0.54 | 0.86 | 0.62 |
+| PLe<sub><span style="color:gray">PI</span></sub>-ISS | 0.9 | 0.63 | 0.93 | 0.66 |
+| PLe**PI**-ISS | 0.92 | 0.66 | 0.94 | 0.71 |
+
+
+
 ### <a id="toc-t3"></a>Table.3
 
 
