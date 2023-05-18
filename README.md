@@ -39,16 +39,20 @@ As explained in Section 4.5 of the paper, for the methods which provide a confid
 - [NGS data](https://github.com/carpenter-singh-lab/2023_Haghighi_IJCAI/blob/main/resource/CP228_NGS_Reads_And_Library_Mapped.csv)
 
 
-### <a id="toc-eval-metrics"></a>A.3. Evaluation Metrics.
+### <a id="toc-eval-metrics"></a>A.3. Evaluation Metrics
+
 We aim to achieve the highest possible number of cells with a correct barcode assignment. Therefore, the main evaluation metrics are rate of cell recovery and the matches between abundance of cell assignments and the NGS-based barcode abundance:
 
-- ### Cell Recovery Rate. 
-  - Recovery rate is defined as the ratio of cell assignments with a targeted barcode over the total number of detected cells by CellProfiler. Note that there are a number of cells that dont recieve any barcode assignments and therefore this number is different than the PPV at the cell level.
+#### Cell Recovery Rate
 
-- ### NGS match. 
+Recovery rate is defined as the ratio of cell assignments with a targeted barcode over the total number of detected cells by CellProfiler. Note that there are a number of cells that dont recieve any barcode assignments and therefore this number is different than the PPV at the cell level.
+
+#### NGS match
+
 As described in Section A.2, NGS-based relative abundance of each barcode in the experiment serves as an indirect ground truth to assess the quality of the relative abundance of the detected barcodes assigned to the cells which also exist in the experimental codebook. The similarity between the abundance of the detected cell-level barcode assignments and the NGS-based abundance of codebook barcodes is measured by $R^2$ between the two abundance distributions.
 
-- ### False Discovery Analysis. 
+#### False Discovery Analysis
+
 The next set of metrics are for false discovery analysis and are calculated at both spot-level and cell-level barcode assignments. Following figure illustrates the distinction among the various possible types of barcode assignments. The codebook inputted to the decoding algorithms contains two sets of barcodes:
 - **Targeted** barcodes which form the experimental codebook or the experiments reference library of barcodes.
 - **Trick** barcodes are a collection of intentionally fabricated barcodes that, although not part of the original experimental codebook, are added to the codebook inputted to the decoding algorithms. These barcodes, once introduced into the decoding algorithms, serve as an insightful tool for false discovery analysis, aiding in the identification and assessment of potential overfitting issues inherent in the decoding process.
@@ -58,8 +62,6 @@ A decoding method can generally assign spots to any sequence of base letters and
 
 - $FDR$: Incorrect assignment rates for two categories of "trick" and "not-targeted-nor-trick" calls are reported as False Discovery Rates (FDR) and are denoted as $FDR_{trick}$ and $FDR_{other}$ respectively.
 - $PPV$: Correct assignment rate refers to the rate of the targeted assignments which is $1-FDR$. We report this metric as the Positive Predictive Value ($PPV$) at each spot and cell-level barcode assignments as well.
-
-    
 
 ## <a id="toc-results"></a>Results
 ### <a id="toc-t1"></a>Table.1
@@ -82,7 +84,3 @@ A decoding method can generally assign spots to any sequence of base letters and
 - Script X can be used For generating the PLePI-ISS results in this table.
 
 - Add Table
-
- 
-
-
