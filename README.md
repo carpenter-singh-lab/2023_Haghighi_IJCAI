@@ -81,7 +81,14 @@ A decoding method can generally assign spots to any sequence of base letters and
 
 - Script X can be used For generating the PLePI-ISS results in this table.
 
-- Add Table
+| Method       | NGS match <br> ($R^2$) | cell recovery <br> (Rate) | $PPV$     <br> (cell/spot)    | $FDR_{trick}$ <br> (cell/spot)| $FDR_{other}$ <br> (cell/spot)|
+|--------------|-----------|---------------|--------------|---------------|---------------|
+| ISTDECO      | 0.73      | 0.45          | 0.994 / 0.992| 0.006 / 0.0077| 0 / 0         |
+| PoSTcode     | 0.89      | 0.71          | 0.92 / 0.93  | 0 / 0.0001    | 0.0799 / 0.0695|
+| Starfish     | 0.92      | 0.72          | 0.912 / 0.872| 0 / 0         | 0.0883 / 0.1278|
+| BarDensr     | 0.95      | 0.71          | 0.997 / 0.99 | 0.003 / 0.0103| 0 / 0         |
+| **PLePI-ISS** | 0.94      | 0.72          | 0.918 / 0.908| 0 / 0         | 0.0819 / 0.0918|
+
 
  
 
