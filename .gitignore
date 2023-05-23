@@ -1,3 +1,9 @@
+# weight-files
+experiments/ablation/init_teacher_by_lq/*
+experiments/ablation/init_teacher_by_hq/*
+experiments/plepi-iss/pseudo-labeler/*
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
