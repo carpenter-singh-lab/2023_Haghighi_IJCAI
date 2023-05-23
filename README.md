@@ -2,7 +2,7 @@
 
 
  - [Link to Paper](will be added once published)
- - [Link to supplementary materials](dont forget to add once completed before camera ready deadline)
+ - [Link to supplementary materials](https://github.com/carpenter-singh-lab/2023_Haghighi_IJCAI/blob/main/documentation/Haghighi_PLePI_ISS_IJCAI23_Supplementary_Materials.pdf)
  
  
  ## Table of Contents
