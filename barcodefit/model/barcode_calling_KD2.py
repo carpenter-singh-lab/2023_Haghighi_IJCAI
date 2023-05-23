@@ -1983,7 +1983,7 @@ def fpn_clustering_graph_t(rois, feature_maps, image_meta, gt_ids, config):
     num_classes = config.NUM_CLASSES
     bc_ref = config.barcode_ref_array
     bc_match = config.BC_MATCH
-    pre_match_clustering = config.pre_match_clustering
+    # pre_match_clustering = config.pre_match_clustering
     train_bn = config.TRAIN_BN
     fc_layers_size = config.FPN_CLASSIF_FC_LAYERS_SIZE
     stage5_enabled = config.stage5_enabled
@@ -2028,58 +2028,30 @@ def fpn_clustering_graph_t(rois, feature_maps, image_meta, gt_ids, config):
     #     print("shared",shared)
     #     nClust=5;
 
-    if pre_match_clustering:
-
-        def my_lambda_func(
-            x, pred_class_ids, mrcnn_class_logits, gt_ids, num_classes, bc_ref, bc_match
-        ):
-            clustering_labels_ls = tf.numpy_function(
-                func=sklearn_kmeans_foreground,
-                inp=[
-                    x,
-                    pred_class_ids,
-                    mrcnn_class_logits,
-                    gt_ids,
-                    num_classes,
-                    bc_ref,
-                    bc_match,
-                    tau_s,
-                    tau_g,
-                ],
-                Tout=[tf.int32, tf.int32],
-                name="kmeansclus",
-            )
-            sh = K.int_shape(mrcnn_class_logits)
-            clustering_labels_ls[0].set_shape([None, sh[1]])
-            clustering_labels_ls[1].set_shape([None, sh[1]])
-            return clustering_labels_ls
-
-    else:
-
-        def my_lambda_func(
-            x, pred_class_ids, mrcnn_class_logits, gt_ids, num_classes, bc_ref, bc_match
-        ):
-            clustering_labels_ls = tf.numpy_function(
-                func=roi_pseudo_labeling,
-                inp=[
-                    x,
-                    pred_class_ids,
-                    mrcnn_class_logits,
-                    gt_ids,
-                    num_classes,
-                    bc_ref,
-                    bc_match,
-                    tau_s,
-                    tau_g,
-                ],
-                Tout=[tf.int32, tf.int32],
-                name="kmeansclus",
-            )
-            sh = K.int_shape(mrcnn_class_logits)
-            clustering_labels_ls[0].set_shape([None, sh[1]])
-            clustering_labels_ls[1].set_shape([None, sh[1]])
-            #         clustering_labels.set_shape(x.get_shape())
-            return clustering_labels_ls
+    def my_lambda_func(
+        x, pred_class_ids, mrcnn_class_logits, gt_ids, num_classes, bc_ref, bc_match
+    ):
+        clustering_labels_ls = tf.numpy_function(
+            func=roi_pseudo_labeling,
+            inp=[
+                x,
+                pred_class_ids,
+                mrcnn_class_logits,
+                gt_ids,
+                num_classes,
+                bc_ref,
+                bc_match,
+                tau_s,
+                tau_g,
+            ],
+            Tout=[tf.int32, tf.int32],
+            name="kmeansclus",
+        )
+        sh = K.int_shape(mrcnn_class_logits)
+        clustering_labels_ls[0].set_shape([None, sh[1]])
+        clustering_labels_ls[1].set_shape([None, sh[1]])
+        #         clustering_labels.set_shape(x.get_shape())
+        return clustering_labels_ls
 
     # Classifier head
     mrcnn_class_logits = KL.TimeDistributed(
@@ -2169,7 +2141,6 @@ def fpn_clustering_graph_s(rois, feature_maps, image_meta, gt_ids, config):
     num_classes = config.NUM_CLASSES
     bc_ref = config.barcode_ref_array
     bc_match = config.BC_MATCH
-    pre_match_clustering = config.pre_match_clustering
     train_bn = config.TRAIN_BN
     fc_layers_size = config.FPN_CLASSIF_FC_LAYERS_SIZE
     stage5_enabled = config.stage5_enabled
@@ -4404,7 +4375,6 @@ class MaskRCNN(object):
         """
         assert self.mode == "training", "Create model in training mode."
 
-        #         "heads": r"(.*mrcnn\_.*)|(.*rpn\_.*)|(.*fpn\_.*)"
         # Pre-defined layer regular expressions
         layer_regex = {
             # all layers but the backbone
@@ -4424,57 +4394,22 @@ class MaskRCNN(object):
         else:
             self.config.LOSS_WEIGHTS = self.config.CLUS_LOSS_WEIGHTS
 
-        # Data generators
-        #         if not self.config.USE_RPN_ROIS:
-        #             random_rois=500
-        #         else:
-        #             random_rois=0
-
-        #         # Data generators
-        #         train_generator = data_generators.data_generator(train_dataset, self.config, shuffle=False,
-        #                                          augmentation=augmentation,random_rois=random_rois,
-        #                                          batch_size=self.config.BATCH_SIZE,
-        #                                          no_augmentation_sources=no_augmentation_sources)
-        #         val_generator = data_generators.data_generator(val_dataset, self.config, shuffle=False,random_rois=random_rois,
-        #                                        batch_size=self.config.BATCH_SIZE)
-
-        # Data generators
-        if self.config.load_batch_images:
-
-            train_generator = DataGeneratorBatch(
-                train_dataset,
-                self.config,
-                shuffle=False,
-                augmentation=augmentation,
-                batch_size=self.config.BATCH_SIZE,
-                no_augmentation_sources=no_augmentation_sources,
-            )
-            val_generator = DataGeneratorBatch(
-                val_dataset,
-                self.config,
-                shuffle=False,
-                augmentation=augmentation,
-                batch_size=self.config.BATCH_SIZE,
-                no_augmentation_sources=no_augmentation_sources,
-            )
-        else:
-
-            train_generator = DataGenerator(
-                train_dataset,
-                self.config,
-                shuffle=False,
-                augmentation=augmentation,
-                batch_size=self.config.BATCH_SIZE,
-                no_augmentation_sources=no_augmentation_sources,
-            )
-            val_generator = DataGenerator(
-                val_dataset,
-                self.config,
-                shuffle=False,
-                augmentation=augmentation,
-                batch_size=self.config.BATCH_SIZE,
-                no_augmentation_sources=no_augmentation_sources,
-            )
+        train_generator = DataGenerator(
+            train_dataset,
+            self.config,
+            shuffle=False,
+            augmentation=augmentation,
+            batch_size=self.config.BATCH_SIZE,
+            no_augmentation_sources=no_augmentation_sources,
+        )
+        val_generator = DataGenerator(
+            val_dataset,
+            self.config,
+            shuffle=False,
+            augmentation=augmentation,
+            batch_size=self.config.BATCH_SIZE,
+            no_augmentation_sources=no_augmentation_sources,
+        )
         # Create log_dir if it does not exist
         if not os.path.exists(self.log_dir + "/seqs/"):
             #             os.makedirs(self.log_dir)
@@ -4483,52 +4418,17 @@ class MaskRCNN(object):
 
         #         # Callbacks
         callbacks = [
-            keras.callbacks.TensorBoard(
-                log_dir=self.log_dir,
-                histogram_freq=0,
-                write_graph=True,
-                write_images=False,
-            ),
-            keras.callbacks.ModelCheckpoint(
-                self.checkpoint_path,
-                verbose=0,
-                save_freq=self.config.model_save_epoch_period,
-                save_weights_only=True,
-                save_best_only=False,
-                monitor="val_loss",
-            ),  # val_mrcnn_class_loss'
             keras.callbacks.CSVLogger(
                 filename=self.log_dir + "/csvlog.log", separator=",", append=False
             )
             #             keras.callbacks.LambdaCallback(on_batch_end=lambdaCallbackFunc)
         ]
-        # Callbacks
-        #         callbacks = [
-        #             keras.callbacks.TensorBoard(log_dir=self.log_dir,
-        #                                         histogram_freq=0, write_graph=True, write_images=False),
-        #             tfa.callbacks.AverageModelCheckpoint(update_weights=True,filepath=self.checkpoint_path,\
-        #                           save_weights_only=True,save_freq='epoch'),
-        #             keras.callbacks.CSVLogger(filename=self.log_dir+'/csvlog.log', separator=",", append=False)
-        # #             keras.callbacks.LambdaCallback(on_batch_end=lambdaCallbackFunc)
-        #         ]
-        #         callbacks = [
-        #             tfa.callbacks.AverageModelCheckpoint(update_weights=True,filepath=self.checkpoint_path,\
-        #                           save_weights_only=True,save_freq='epoch')
-        #         ]
 
         if os.name == "nt":
             workers = 0
         else:
             workers = self.config.n_workers_to_use
 
-        #         print("callbacks",callbacks)
-        #         tf.config.run_functions_eagerly(True)
-
-        # Initialize all variables in a session
-        #         sess = tf.compat.v1.Session()
-        #         sess.run(tf.compat.v1.global_variables_initializer())
-
-        #         with sess.as_default():
         if self.config.init_with == "fixed":
             #             # Create a dictionary to map layer names to layers
             layer_dict = {
@@ -4563,7 +4463,7 @@ class MaskRCNN(object):
                 matched_strings,
                 self.keras_model,
                 ema_decay=0.99,
-                n_batch=self.config.n_batch,
+                n_batch=self.config.update_teacher_n_batch,
             )
             callbacks.append(ema_update_callback)
 
@@ -4588,25 +4488,7 @@ class MaskRCNN(object):
                 shuffle=False,
             )
 
-            #             self.optimizer.assign_average_vars(self.keras_model.trainable_variables)
-
-            #             model_architecture = self.keras_model.to_json()
-            #             with open(self.log_dir+"/final_model/final_model_architecture.json", "w") as json_file:
-            #                 json_file.write(model_architecture)
-            #             self.keras_model.save_weights(self.log_dir+"/final_model/final_model_weights.h5")
-            #             pdb.set_trace()
             self.keras_model.save_weights(self.log_dir + "/final_model/final_model")
-
-            #             os.makedirs(self.log_dir+'/final_model/')
-            # #             with tf.compat.v1.Session() as sess:
-            #             saver = tf.compat.v1.train.Saver()
-            #             saver.save(sess, self.log_dir+'/final_model/final_model')
-            #             self.keras_model.save(self.log_dir+'/final_model/final_model.h5')
-
-            #         self.keras_model.save(self.checkpoint_path+'/final_model')
-            #         self.keras_model.save(self.checkpoint_path+'/final_model.h5')
-            #         keras.models.save_model(self.keras_model,self.checkpoint_path+'/final_model')
-
             self.epoch = max(self.epoch, epochs)
 
     def transfer_weights(
@@ -4694,22 +4576,10 @@ class MaskRCNN(object):
                             )
                             print(source_layer.get_config())
                             print(target_layer.get_config())
-                        #                             pdb.set_trace()
-                        #                             raise ValueError(
-                        #                                 f"Source layer '{layer_name}' and target layer '{layer_name}' must have the same configuration."
-                        #                             )
-                        #                         teach_res2a_branch2a teach_res2a_branch2a
+
                         print(source_layer.name, target_layer.name)
-                        #                         ValueError: Layer weight shape (1, 1, 64, 64) not
-                        # compatible with provided weight shape (7, 7, 4, 64)
 
                         target_layer.set_weights(source_layer.get_weights())
-
-        #                         if to_st_as_well:
-        #                             st_layer_name = layer_name[len("teach_"):]
-        # #                             if st_layer_name in target_layers:
-        #                                 target_layer_s = target_model.get_layer(st_layer_name)
-        #                                 target_layer_s.set_weights(new_weights)
 
         source_layers = {layer.name: layer for layer in model_source.layers}
         target_layers = {layer.name: layer for layer in model_target.layers}
@@ -4743,75 +4613,38 @@ class MaskRCNN(object):
     ):
         """evaluate the model"""
 
-        #         "heads": r"(mrcnn\_.*)|(rpn\_.*)|(fpn\_.*)",
-
-        #         # Pre-defined layer regular expressions
-        #         layer_regex = {
-        #             # all layers but the backbone
-        #             "heads": r"(mrcnn\_.*)|(rpn\_.*)|(fpn\_.*)",
-        #             # From a specific Resnet stage and up
-        #             "3+": r"(res3.*)|(bn3.*)|(res4.*)|(bn4.*)|(res5.*)|(bn5.*)|(mrcnn\_.*)|(rpn\_.*)|(fpn\_.*)",
-        #             "4+": r"(res4.*)|(bn4.*)|(res5.*)|(bn5.*)|(mrcnn\_.*)|(rpn\_.*)|(fpn\_.*)",
-        #             "5+": r"(res5.*)|(bn5.*)|(mrcnn\_.*)|(rpn\_.*)|(fpn\_.*)",
-        #             # All layers
-        #             "all": ".*",
-        #         }
-
-        #         if layers in layer_regex.keys():
-        #             layers = layer_regex[layers]
-
-        if self.config.load_batch_images:
-            train_generator = DataGeneratorBatch(
-                train_dataset,
-                self.config,
-                shuffle=False,
-                augmentation=augmentation,
-                batch_size=self.config.BATCH_SIZE,
-                no_augmentation_sources=no_augmentation_sources,
-            )
-        else:
-            train_generator = DataGenerator(
-                train_dataset,
-                self.config,
-                shuffle=False,
-                augmentation=augmentation,
-                batch_size=self.config.BATCH_SIZE,
-                no_augmentation_sources=no_augmentation_sources,
-            )
+        train_generator = DataGenerator(
+            train_dataset,
+            self.config,
+            shuffle=False,
+            augmentation=augmentation,
+            batch_size=self.config.BATCH_SIZE,
+            no_augmentation_sources=no_augmentation_sources,
+        )
 
         if not os.path.exists(self.log_dir + "/seqs/"):
             #             os.makedirs(self.log_dir)
             os.makedirs(self.log_dir + "/seqs/")
+            os.makedirs(self.log_dir + "/seqs2/")
 
         callbacks = [
-            #             keras.callbacks.ModelCheckpoint(self.checkpoint_path),#val_mrcnn_class_loss'
-            #             keras.callbacks.TensorBoard(log_dir=self.log_dir+'/evaluate/',histogram_freq=1),
             keras.callbacks.CSVLogger(
                 filename=self.log_dir + "/csvlog.log", separator=",", append=False
             )
-            #             keras.callbacks.LambdaCallback(on_batch_end=lambdaCallbackFunc)
         ]
 
         if pretrained_model_path:
-            #             self.compile(learning_rate, self.config.LEARNING_MOMENTUM,clear_loss=False)
-            #             if isinstance(pretrained_model_path, MaskRCNN):
+
             if 0:
                 self.transfer_weights_partial(
                     pretrained_model_path.keras_model, self.keras_model
                 )
-            #             self.set_trainable(layers)
-            #             keras_model = keras_model or self.keras_model
-            #             layers = keras_model.inner_model.layers if hasattr(keras_model, "inner_model")\
-            #                 else keras_model.layers
 
             else:
 
                 if "ckpt" in pretrained_model_path:
                     self.keras_model.load_weights(pretrained_model_path)
                 else:
-                    #                 latest = tf.train.latest_checkpoint(pretrained_model_path)
-                    #     #             print("latest",latest)
-                    #                 self.keras_model.load_weights(latest)
 
                     #             # Create a dictionary to map layer names to layers
                     layer_dict = {
@@ -4826,97 +4659,12 @@ class MaskRCNN(object):
                     )
                     self.keras_model2.load_weights(latest)
                     print("latest", latest)
-                #                     pdb.set_trace()
 
-                #                     (Pdb) len(self.keras_model2.layers)
-                #                     430
-                #                     (Pdb) len(self.keras_model.layers)
-                #                     226
-
-                #                     self.keras_model.load_weights(latest,by_name=True)
-                #                     pdb.set_trace()
-                #                 layer_name2 = [layer.name for layer in self.keras_model2.layers]
-                #                 print(layer_name2)
-                #                 pdb.set_trace()
-                #                 self.transfer_weights(self.keras_model2,self.keras_model,ls_pr,to_st_as_well=True)
                 self.transfer_weights_partial(
                     self.keras_model2, self.keras_model, to_st_as_well=False
                 )
             #         pdb.set_trace()
             self.compile(learning_rate, self.config.LEARNING_MOMENTUM, clear_loss=False)
-
-        if os.name == "nt":
-            workers = 0
-        else:
-            #             workers = 9
-            #             workers = 22#int(multiprocessing.cpu_count()/2)
-            #             workers = int(multiprocessing.cpu_count()/2)
-            workers = self.config.n_workers_to_use
-
-        e = self.keras_model.evaluate(
-            train_generator,
-            verbose="auto",
-            max_queue_size=self.config.max_q_size_generator,
-            callbacks=callbacks,
-            workers=workers,
-            use_multiprocessing=True,
-        )
-        print(self.keras_model.metrics_names)
-        #         e = {out: e[i] for i, out in enumerate(self.keras_model.metrics_names)}
-
-        return e
-
-    def evaluate_ready_model(
-        self,
-        train_dataset,
-        learning_rate,
-        layers,
-        pretrained_model_path=None,
-        augmentation=None,
-        no_augmentation_sources=None,
-    ):
-        """evaluate the model"""
-        self.config.BC_MATCH = False
-        self.config.rpn_clustering = True
-        self.config.img_aug = False
-        self.config.TRAIN_ROIS_PER_IMAGE = 32 * 3 * 2
-        self.config.RPN_TRAIN_ANCHORS_PER_IMAGE = 32 * 3 * 2
-        self.config.save_seqs = 1
-        #         self.config.init_with=="fixed";self.config.assign_label_mode ="clustering";
-
-        #         self.compile(learning_rate, self.config.LEARNING_MOMENTUM,clear_loss=False)
-
-        if self.config.load_batch_images:
-            train_generator = DataGeneratorBatch(
-                train_dataset,
-                self.config,
-                shuffle=False,
-                augmentation=augmentation,
-                batch_size=self.config.BATCH_SIZE,
-                no_augmentation_sources=no_augmentation_sources,
-            )
-        else:
-            train_generator = DataGenerator(
-                train_dataset,
-                self.config,
-                shuffle=False,
-                augmentation=augmentation,
-                batch_size=self.config.BATCH_SIZE,
-                no_augmentation_sources=no_augmentation_sources,
-            )
-
-        if not os.path.exists(self.log_dir + "/seqs/"):
-            #             os.makedirs(self.log_dir)
-            os.makedirs(self.log_dir + "/seqs/")
-
-        callbacks = [
-            #             keras.callbacks.ModelCheckpoint(self.checkpoint_path),#val_mrcnn_class_loss'
-            #             keras.callbacks.TensorBoard(log_dir=self.log_dir+'/evaluate/',histogram_freq=1),
-            keras.callbacks.CSVLogger(
-                filename=self.log_dir + "/csvlog.log", separator=",", append=False
-            )
-            #             keras.callbacks.LambdaCallback(on_batch_end=lambdaCallbackFunc)
-        ]
 
         if os.name == "nt":
             workers = 0
@@ -4984,208 +4732,6 @@ class MaskRCNN(object):
         #         print(image_metas.shape)
         windows = np.stack(windows)
         return molded_images, image_metas, windows
-
-    def unmold_detections(self, detections, original_image_shape, image_shape, window):
-        """Reformats the detections of one image from the format of the neural
-        network output to a format suitable for use in the rest of the
-        application.
-
-        detections: [N, (y1, x1, y2, x2, class_id, score)] in normalized coordinates
-        mrcnn_mask: [N, height, width, num_classes]
-        original_image_shape: [H, W, C] Original image shape before resizing
-        image_shape: [H, W, C] Shape of the image after resizing and padding
-        window: [y1, x1, y2, x2] Pixel coordinates of box in the image where the real
-                image is excluding the padding.
-
-        Returns:
-        boxes: [N, (y1, x1, y2, x2)] Bounding boxes in pixels
-        class_ids: [N] Integer class IDs for each bounding box
-        scores: [N] Float probability scores of the class_id
-        masks: [height, width, num_instances] Instance masks
-        """
-        # How many detections do we have?
-        # Detections array is padded with zeros. Find the first class_id == 0.
-        zero_ix = np.where(detections[:, 4] == 0)[0]
-        N = zero_ix[0] if zero_ix.shape[0] > 0 else detections.shape[0]
-
-        # Extract boxes, class_ids, scores, and class-specific masks
-        boxes = detections[:N, :4]
-        #         print('boxes',boxes)
-        print("imshape", image_shape, original_image_shape)
-        class_ids = detections[:N, 4].astype(np.int32)
-        scores = detections[:N, 5]
-        class_probs = detections[:N, 6:]
-
-        #         print('boxes.shape:',boxes.shape)
-        print("window:", window)
-        #         print('boxes.shape:',boxes.shape)
-
-        # Translate normalized coordinates in the resized image to pixel
-        # coordinates in the original image before resizing
-        window = utils.norm_boxes(window, image_shape[:2])
-        print("original_image_shape:", original_image_shape[:2])
-        wy1, wx1, wy2, wx2 = window
-        shift = np.array([wy1, wx1, wy1, wx1])
-        wh = wy2 - wy1  # window height
-        ww = wx2 - wx1  # window width
-        scale = np.array([wh, ww, wh, ww])
-        # Convert boxes to normalized coordinates on the window
-        boxes = np.divide(boxes - shift, scale)
-        # Convert boxes to pixel coordinates on the original image
-        boxes = utils.denorm_boxes(boxes, original_image_shape[:2])
-
-        # Filter out detections with zero area. Happens in early training when
-        # network weights are still random
-        exclude_ix = np.where(
-            (boxes[:, 2] - boxes[:, 0]) * (boxes[:, 3] - boxes[:, 1]) <= 0
-        )[0]
-        if exclude_ix.shape[0] > 0:
-            boxes = np.delete(boxes, exclude_ix, axis=0)
-            class_probs = np.delete(class_probs, exclude_ix, axis=0)
-            class_ids = np.delete(class_ids, exclude_ix, axis=0)
-            scores = np.delete(scores, exclude_ix, axis=0)
-            N = class_ids.shape[0]
-
-        return boxes, class_ids, scores, class_probs
-
-    def detect(self, images, verbose=0):
-        """Runs the detection pipeline.
-
-        images: List of images, potentially of different sizes.
-
-        Returns a list of dicts, one dict per image. The dict contains:
-        rois: [N, (y1, x1, y2, x2)] detection bounding boxes
-        class_ids: [N] int class IDs
-        scores: [N] float probability scores for the class IDs
-        masks: [H, W, N] instance binary masks
-        """
-        assert self.mode == "inference", "Create model in inference mode."
-        assert (
-            len(images) == self.config.BATCH_SIZE
-        ), "len(images) must be equal to BATCH_SIZE"
-
-        if verbose:
-            log("Processing {} images".format(len(images)))
-            for image in images:
-                log("image", image)
-
-        # Mold inputs to format expected by the neural network
-        molded_images, image_metas, windows = self.mold_inputs(images)
-
-        # Validate image sizes
-        # All images in a batch MUST be of the same size
-        image_shape = molded_images[0].shape
-        for g in molded_images[1:]:
-            assert (
-                g.shape == image_shape
-            ), "After resizing, all images must have the same size. Check IMAGE_RESIZE_MODE and image sizes."
-
-        # Anchors
-        anchors = self.get_anchors(image_shape)
-        #         print("anchors1",anchors)
-        # Duplicate across the batch dimension because Keras requires it
-        # TODO: can this be optimized to avoid duplicating the anchors?
-        anchors = np.broadcast_to(anchors, (self.config.BATCH_SIZE,) + anchors.shape)
-        #         print("anchors2",anchors.shape)
-        if verbose:
-            log("molded_images", molded_images)
-            log("image_metas", image_metas)
-            log("anchors", anchors)
-        # Run object detection
-        #         print(molded_images.shape, image_metas, anchors.shape)
-        #         detections, _, _, mrcnn_mask, _, _, _ =\
-        #             self.keras_model.predict([molded_images, image_metas, anchors], verbose=0)
-
-        detections, _, _, _, _, _ = self.keras_model.predict_on_batch(
-            [molded_images, image_metas, anchors]
-        )
-
-        #         K.clear_session()
-        # Process detections
-        results = []
-        for i, image in enumerate(images):
-            print("here:", image.shape, molded_images[i].shape, windows[i])
-            (
-                final_rois,
-                final_class_ids,
-                final_scores,
-                final_probs,
-            ) = self.unmold_detections(
-                detections[i], image.shape, molded_images[i].shape, windows[i]
-            )
-            results.append(
-                {
-                    "rois": final_rois,
-                    "class_ids": final_class_ids,
-                    "scores": final_scores,
-                    "probs": final_probs,
-                }
-            )
-        return results
-
-    def detect_molded(self, molded_images, image_metas, verbose=0):
-        """Runs the detection pipeline, but expect inputs that are
-        molded already. Used mostly for debugging and inspecting
-        the model.
-
-        molded_images: List of images loaded using load_image_gt()
-        image_metas: image meta data, also returned by load_image_gt()
-
-        Returns a list of dicts, one dict per image. The dict contains:
-        rois: [N, (y1, x1, y2, x2)] detection bounding boxes
-        class_ids: [N] int class IDs
-        scores: [N] float probability scores for the class IDs
-        masks: [H, W, N] instance binary masks
-        """
-        assert self.mode == "inference", "Create model in inference mode."
-        assert (
-            len(molded_images) == self.config.BATCH_SIZE
-        ), "Number of images must be equal to BATCH_SIZE"
-
-        if verbose:
-            log("Processing {} images".format(len(molded_images)))
-            for image in molded_images:
-                log("image", image)
-
-        # Validate image sizes
-        # All images in a batch MUST be of the same size
-        image_shape = molded_images[0].shape
-        #         print('molded: ',image_shape)
-        for g in molded_images[1:]:
-            assert g.shape == image_shape, "Images must have the same size"
-
-        # Anchors
-        anchors = self.get_anchors(image_shape)
-        # Duplicate across the batch dimension because Keras requires it
-        # TODO: can this be optimized to avoid duplicating the anchors?
-        anchors = np.broadcast_to(anchors, (self.config.BATCH_SIZE,) + anchors.shape)
-
-        if verbose:
-            log("molded_images", molded_images)
-            log("image_metas", image_metas)
-            log("anchors", anchors)
-        # Run object detection
-
-        #         detections, _, _, mrcnn_mask, _, _, _ =\
-        #             self.keras_model.predict_on_batch([molded_images, image_metas, anchors])
-        detections, _, _, _, _, _ = self.keras_model.predict(
-            [molded_images, image_metas, anchors], batch_size=9, steps=2, verbose=1
-        )
-        # Process detections
-        results = []
-        for i, image in enumerate(molded_images):
-            window = [0, 0, image.shape[0], image.shape[1]]
-            final_rois, final_class_ids, final_scores = self.unmold_detections(
-                detections[i], image.shape, molded_images[i].shape, window
-            )
-            results.append(
-                {
-                    "rois": final_rois,
-                    "class_ids": final_class_ids,
-                    "scores": final_scores,
-                }
-            )
-        return results
 
     def get_anchors(self, image_shape):
         """Returns anchor pyramid for the given image size."""

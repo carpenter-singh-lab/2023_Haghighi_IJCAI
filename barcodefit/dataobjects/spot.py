@@ -27,9 +27,6 @@ from skimage.util import img_as_ubyte
 from barcodefit.model import model_utils as utils
 from barcodefit.model.config import Config
 
-# import imgaug  # https://github.com/aleju/imgaug (pip3 install imgaug)
-
-
 ############################################################
 #  Spot Class Configurations
 ############################################################
@@ -105,12 +102,11 @@ class spotConfig(Config):
     #     TRAIN_BN = True
 
     DETECTION_NMS_THRESHOLD = 0.01
-    # Use a small epoch since the data is simple
+
     STEPS_PER_EPOCH = (
         484  # 50   ### should be at least equal to the number of crops in each image
     )
 
-    # use small validation steps since the epoch is small
     VALIDATION_STEPS = 5
     #    head='def'; #'def','unet'
 
@@ -141,10 +137,6 @@ class spotConfig(Config):
     negative_roi_iou_max_thr = 0.5  # (defualt is 0.5)
 
     USE_MINI_MASK = False
-    #     MINI_MASK_SHAPE = (32, 32)
-    # Image mean (RGB)
-    #     MEAN_PIXEL = np.array([123.7, 116.8, 103.9])
-    #     MEAN_PIXEL =np.ones((IMAGE_CHANNEL_COUNT,), dtype=int)*128;
 
     RPN_BBOX_STD_DEV = np.array([0.1, 0.1, 0.2, 0.2])
     BBOX_STD_DEV = np.array([0.1, 0.1, 0.2, 0.2])
@@ -152,8 +144,8 @@ class spotConfig(Config):
     #     MEAN_PIXEL =np.zeros((IMAGE_CHANNEL_COUNT,), dtype=int);
     MEAN_PIXEL = np.array([0, 0, 0, 0])
 
-    LEARNING_RATE = 0.001
-    LEARNING_MOMENTUM = 0.9
+    # LEARNING_RATE = 0.001
+    # LEARNING_MOMENTUM = 0.9
 
     IMAGE_META_SIZE = 1 + 3 + 3 + 4 + 1 + NUM_CLASSES + 2
 
@@ -176,6 +168,8 @@ class spotConfig(Config):
     tau_s = (
         0.9  # confidence thresholding for single sample (base letter) pseudo-labling
     )
+
+    GRADIENT_CLIP_NORM = 1
 
 
 #     IMAGE_META_SIZE = 1 + 3 + 3 + 4 + 1 + NUM_CLASSES-1
@@ -675,29 +669,18 @@ class spotsDataset(utils.Dataset):
 
         thrsh = np.percentile(max_proj_im, (99))
         index_spots = np.where(max_proj_im > thrsh)
-        # dfInfoo=pd.DataFrame(index=range(index_spots[0].shape[0]),columns=['Location_Center_X', 'Location_Center_Y',\
-        #                             "C_int","G_int","A_int","T_int","Metadata_Label"])
 
-        # dfInfoo['Location_Center_X']=index_spots[1]
-        # dfInfoo['Location_Center_Y']=index_spots[0]
         if index_spots[0].shape[0] > 0:
             armaxx = np.argmax(images3D[index_spots[0], index_spots[1], :], axis=-1)
-            # dfInfoo['Metadata_Label']=armaxx
-            # Build mask of shape [height, width, instance_count] and list
-            # of class IDs that correspond to each channel of the mask.
+
             centers = []
             instance_bboxes = []
             class_ids = []
 
             for ri in range(len(armaxx)):
-
-                #     center_x,center_y=dfInfoo.loc[ri,['Location_Center_X','Location_Center_Y']].values
-
                 center_y, center_x = index_spots[1][ri], index_spots[0][ri]
 
                 if ri > 0:
-                    #                     c = np.logical_and(OneHot2D_instance_mask, instance_masks[-1])
-                    #                 c = np.logical_and(OneHot2D_instance_mask, np.sum(np.stack(instance_masks,axis=2),axis=-1))
                     if (abs(center_x - centers[-1][0]) > bbox_half_len * 2) or (
                         abs(center_y - centers[-1][1]) > bbox_half_len * 2
                     ):

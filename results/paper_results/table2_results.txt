@@ -1,0 +1,6 @@
+PL_mode=-, label_quality=LQ, ngs_match=0.81, cell_recovery_rate=0.54
+PL_mode=-, label_quality=HQ, ngs_match=0.86, cell_recovery_rate=0.62
+PL_mode=PLepi, label_quality=LQ, ngs_match=0.9, cell_recovery_rate=0.63
+PL_mode=PLepi, label_quality=HQ, ngs_match=0.93, cell_recovery_rate=0.67
+PL_mode=PLePI, label_quality=LQ, ngs_match=0.92, cell_recovery_rate=0.66
+PL_mode=PLePI, label_quality=HQ, ngs_match=0.94, cell_recovery_rate=0.71

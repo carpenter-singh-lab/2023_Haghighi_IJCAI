@@ -2,6 +2,8 @@
 experiments/ablation/init_teacher_by_lq/*
 experiments/ablation/init_teacher_by_hq/*
 experiments/plepi-iss/pseudo-labeler/*
+experiments/ablation/temp/*
+experiments/plepi-iss/temp/*
 
 
 # Byte-compiled / optimized / DLL files
