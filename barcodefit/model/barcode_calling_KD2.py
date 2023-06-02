@@ -1001,6 +1001,7 @@ class DetectionTargetLayer_barcode(KL.Layer):
             gt_boxes_batches.shape,
             gt_boxes.shape,
         )
+        
         #       (9, 3000, 4) (27000, 4) (None, 150, 4) (150, 4)
         #             proposals2 = KL.Lambda(lambda t: keras.backend.repeat_elements(tf.expand_dims(t, axis=0), proposals.shape[0], axis=0))(proposals_batches_merged)
 
@@ -3135,7 +3136,7 @@ class MaskRCNN(object):
             #         input_image_aug=tf.image.random_brightness(input_image0, 0.2, name='input_aug')
             #             input_image = KL.Concatenate(axis=0, name='input_aug_cat')([input_image0,input_image_aug])
             #             input_image = KL.Concatenate(axis=0, name='input_aug_cat')([input_image0,input_image_aug])
-            print("YO", input_image.shape, input_image_aug.shape)
+            # print("YO", input_image.shape, input_image_aug.shape)
         else:
             input_image = keras.Input(
                 shape=[None, None, config.IMAGE_SHAPE[2]], name="input_image"
@@ -3175,31 +3176,7 @@ class MaskRCNN(object):
                 lambda x: norm_boxes_graph(x, tf.shape(input_image)[1:3])
             )(input_gt_boxes)
 
-        elif mode == "inference":
-            # Anchors in normalized coordinates
-            input_anchors = keras.Input(shape=[None, 4], name="input_anchors")
 
-        #         elif mode == "inference2":
-        #             input_anchors = keras.Input(shape=[None, 4], name="input_anchors")
-        #             input_gt_masks = keras.Input(
-        #                 shape=[config.IMAGE_SHAPE[0], config.IMAGE_SHAPE[1], None],
-        #                 name="input_gt_maskss", dtype=bool)
-        #             input_gt_boxes = keras.Input(
-        #                 shape=[None, 4], name="input_gt_boxess", dtype=tf.float32)
-        # #             # Normalize coordinates
-        #             gt_boxes = KL.Lambda(lambda x: norm_boxes_graph(
-        #                 x, tf.shape(input_image)[1:3]))(input_gt_boxes)
-        #             input_gt_class_ids = keras.Input(
-        #                 shape=[None], name="input_gt_class_ids", dtype=tf.int32)
-
-        # Build the shared convolutional layers.
-        # Bottom-up Layers
-        # Returns a list of the last layers of each stage, 5 in total.
-        # Don't create the thead (stage 5), so we pick the 4th item in the list.
-
-        #         stage5_enabled=False
-
-        #         pdb.set_trace()
         if callable(config.BACKBONE):
             _, C2, C3, C4, C5 = config.BACKBONE(
                 input_image, stage5=True, train_bn=config.TRAIN_BN
@@ -3386,11 +3363,6 @@ class MaskRCNN(object):
         #         input_feature_map = tf.keras.Input(shape=[None, None, config.TOP_DOWN_PYRAMID_SIZE], name="input_rpn_feature_map")
 
         if config.img_aug:
-            #             rpn = RPNModelLayer(config.RPN_ANCHOR_STRIDE, len(config.RPN_ANCHOR_RATIOS), config.TOP_DOWN_PYRAMID_SIZE)
-            #             rpn_layer = RPNLayer(config.RPN_ANCHOR_STRIDE, len(config.RPN_ANCHOR_RATIOS),\
-            #                                  config.TOP_DOWN_PYRAMID_SIZE, name_prefix='')
-            #             outputs_rpn_m = rpn_layer(input_feature_map)
-            #             rpn = tf.keras.Model(inputs=input_feature_map, outputs=outputs_rpn_m, name="rpn_model")
 
             rpn = build_rpn_model(
                 config.RPN_ANCHOR_STRIDE,
@@ -3405,14 +3377,7 @@ class MaskRCNN(object):
             config.TOP_DOWN_PYRAMID_SIZE,
             name_prefix="teach_",
         )
-        #         rpn_layer_t = RPNLayer(config.RPN_ANCHOR_STRIDE, len(config.RPN_ANCHOR_RATIOS),\
-        #                              config.TOP_DOWN_PYRAMID_SIZE, name_prefix='teach_')
-        #         outputs_rpn_m_t = rpn_layer_t(input_feature_map)
-        #         rpn_t = tf.keras.Model(inputs=input_feature_map, outputs=outputs_rpn_m_t, name="teach_rpn_model")
 
-        #         rpn_t = RPNModelLayer(config.RPN_ANCHOR_STRIDE,
-        #                               len(config.RPN_ANCHOR_RATIOS), config.TOP_DOWN_PYRAMID_SIZE,name_prefix='teach_')
-        #         rpn_t.trainable = True
 
         if config.img_aug:
             # Loop through pyramid layers
@@ -3528,14 +3493,7 @@ class MaskRCNN(object):
             else config.POST_NMS_ROIS_INFERENCE
         )
 
-        #         if config.assign_label_mode == "classification":
-        #             rpn_rois = ProposalLayer(
-        #                 proposal_count=proposal_count,
-        #                 nms_threshold=config.RPN_NMS_THRESHOLD,
-        #                 name="ROI",
-        #                 config=config)([rpn_class, rpn_bbox, anchors])
 
-        #         else:
 
         rpn_rois = ProposalLayer(
             proposal_count=proposal_count,
@@ -3558,8 +3516,6 @@ class MaskRCNN(object):
                     name="input_roi",
                     dtype=np.int32,
                 )
-                #                 input_rois = KL.Input(shape=[500, 4],
-                #                                       name="input_roi", dtype=np.int32)
 
                 # Normalize coordinates
                 target_rois = KL.Lambda(
@@ -3569,27 +3525,12 @@ class MaskRCNN(object):
                 target_rois = rpn_rois
 
             # Generate detection targets
-            # Subsamples proposals and generates target outputs for training
-            # Note that proposal class IDs, gt_boxes, and gt_masks are zero
-            # padded. Equally, returned rois and targets are zero padded.
-
             if config.rpn_clustering:
-                #             if 0:
-                #                 rois, target_class_ids, target_bbox =\
-                #                 DetectionTargetLayer_rpn_clust(config, name="proposal_targets")([
-                #                     target_rois, pslabels_forg_back, rpn_rois_forg_back, input_gt_class_ids, gt_boxes])
-
-                #                 rois, target_class_ids, target_bbox =\
-                #                 DetectionTargetLayer2(config, name="proposal_targets")([
-                #                     target_rois, input_gt_class_ids_byRPN, gt_boxes_byRPN,input_gt_class_ids])
 
                 rois, target_class_ids, target_bbox = DetectionTargetLayer(
                     config, name="proposal_targets"
                 )([target_rois, input_gt_class_ids_byRPN, gt_boxes_byRPN])
 
-            #                 rois, target_class_ids, target_bbox =\
-            #                 DetectionTargetLayer_barcode(config, name="proposal_targets")([
-            #                     target_rois, input_gt_class_ids_byRPN, gt_boxes_byRPN])
 
             else:
 
@@ -3597,17 +3538,7 @@ class MaskRCNN(object):
                     config, name="proposal_targets"
                 )([target_rois, input_gt_class_ids, gt_boxes])
 
-            #             print("gt_class_ids",input_gt_class_ids)
-            #             print("target_class_ids",target_class_ids)
-            #             print("rois",rois)
-            # Network Heads
-            # TODO: verify that this handles zero padded ROIs
-            #             def NMI_clus_class(target_class_ids,target_class_ids2):
-            #                 print("target_class_ids",target_class_ids)
-            #                 print("target_class_ids2",target_class_ids2)
-            #                 from sklearn.metrics.cluster import normalized_mutual_info_score
-            #                 nmi=normalized_mutual_info_score(target_class_ids,target_class_ids2)
-            #                 return nmi
+
             def lambda_layer_ap(target_classes, layer_name):
                 ap = tf.numpy_function(
                     func=utils.compute_ap_bbox_metric,
@@ -3661,13 +3592,6 @@ class MaskRCNN(object):
                     config,
                 )
 
-                #                 mrcnn_class_logits, mrcnn_class, mrcnn_bbox,shared =\
-                #                     fpn_classifier_graph_ts(rois, mrcnn_feature_maps,mrcnn_feature_maps_t,input_image_meta,config,aug=1)
-                #                 mrcnn_class_logits_t, mrcnn_class_t, mrcnn_bbox_t,shared_t =\
-                #                     fpn_classifier_graph(rois, mrcnn_feature_maps_t, input_image_meta,config,aug=0)
-
-                #                 NMI=KL.Layer(trainable=False, name='nmi', dtype=None)
-                #                 NMI = KL.Lambda(lambda_nmi,output_shape=[1], name="lambda_nmi")([target_class_ids,target_class_ids])
 
                 NMI = KL.Lambda(
                     lambda t: lambda_nmi(
@@ -3797,12 +3721,6 @@ class MaskRCNN(object):
             #             if config.rpn_clustering:
             if config.rpn_clustering:
                 if config.img_aug:
-
-                    #                     rpn_class_loss = KL.Lambda(lambda x: rpn_class_loss_graph(*x), name="rpn_class_loss")(
-                    #                         [input_rpn_match, rpn_class_logits])
-
-                    #                     rpn_bbox_loss = KL.Lambda(lambda x: rpn_bbox_loss_graph(config, *x), name="rpn_bbox_loss")(
-                    #                             [input_rpn_bbox, input_rpn_match, rpn_bbox])
 
                     rpn_class_loss = KL.Lambda(
                         lambda x: rpn_class_loss_graph(*x), name="rpn_class_loss"
@@ -3960,15 +3878,6 @@ class MaskRCNN(object):
                 ]
                 layer_t.set_weights(new_weights)
 
-    #     def update_ema_variables(model_teacher, model_student, alpha):
-    #         for layer_t, layer_s in zip(model_teacher.layers, model_student.layers):
-    #             weights_t = layer_t.get_weights()
-    #             weights_s = layer_s.get_weights()
-
-    #             if len(weights_t) > 0:
-    #                 new_weights = [(1 - alpha) * w_t + alpha * w_s for w_t, w_s in zip(weights_t, weights_s)]
-    #                 layer_t.set_weights(new_weights)
-
     def find_last(self):
         """Finds the last checkpoint file of the last trained model in the
         model directory.
@@ -4010,102 +3919,7 @@ class MaskRCNN(object):
         """
         self.keras_model.load_weights(filepath)
 
-    #         keras_model = self.keras_model
-    #         layers = keras_model.inner_model.layers if hasattr(keras_model, "inner_model")\
-    #             else keras_model.layers
 
-    #         # Exclude some layers
-    #         if exclude:
-    #             layers = filter(lambda l: l.name not in exclude, layers)
-
-    #         tf.keras.models.load_model(filepath, custom_objects=layers)
-
-    #         import h5py
-    #         from tensorflow.python.keras.saving import hdf5_format
-
-    #         if exclude:
-    #             by_name = True
-
-    #         if h5py is None:
-    #             raise ImportError('`load_weights` requires h5py.')
-    #         with h5py.File(filepath, mode='r') as f:
-    #             if 'layer_names' not in f.attrs and 'model_weights' in f:
-    #                 f = f['model_weights']
-
-    #             # In multi-GPU training, we wrap the model. Get layers
-    #             # of the inner model because they have the weights.
-    #             keras_model = self.keras_model
-    #             layers = keras_model.inner_model.layers if hasattr(keras_model, "inner_model")\
-    #                 else keras_model.layers
-
-    #             # Exclude some layers
-    #             if exclude:
-    #                 layers = filter(lambda l: l.name not in exclude, layers)
-
-    #             if by_name:
-    #                 hdf5_format.load_weights_from_hdf5_group_by_name(f, layers)
-    #             else:
-    #                 hdf5_format.load_weights_from_hdf5_group(f, layers)
-
-    def load_weights2(self, filepath, by_name=False, exclude=None):
-        """Modified version of the corresponding Keras function with
-        the addition of multi-GPU support and the ability to exclude
-        some layers from loading.
-        exclude: list of layer names to exclude
-        """
-        import h5py
-        from tensorflow.python.keras.saving import hdf5_format
-
-        if exclude:
-            by_name = True
-
-        if h5py is None:
-            raise ImportError("`load_weights` requires h5py.")
-        with h5py.File(filepath, mode="r") as f:
-            if "layer_names" not in f.attrs and "model_weights" in f:
-                f = f["model_weights"]
-
-            # In multi-GPU training, we wrap the model. Get layers
-            # of the inner model because they have the weights.
-            keras_model = self.keras_model
-            layers = (
-                keras_model.inner_model.layers
-                if hasattr(keras_model, "inner_model")
-                else keras_model.layers
-            )
-
-            # Exclude some layers
-            if exclude:
-                layers = filter(lambda l: l.name not in exclude, layers)
-
-            if by_name:
-                hdf5_format.load_weights_from_hdf5_group_by_name(f, layers)
-            else:
-                hdf5_format.load_weights_from_hdf5_group(f, layers)
-
-        # Update the log directory
-
-    #         if self.mode=='inference':
-    #             self.set_log_dir(filepath) # commented by Marzi
-
-    def get_imagenet_weights(self):
-        """Downloads ImageNet trained weights from Keras.
-        Returns path to weights file.
-        """
-        from keras.utils.data_utils import get_file
-
-        TF_WEIGHTS_PATH_NO_TOP = (
-            "https://github.com/fchollet/deep-learning-models/"
-            "releases/download/v0.2/"
-            "resnet50_weights_tf_dim_ordering_tf_kernels_notop.h5"
-        )
-        weights_path = get_file(
-            "resnet50_weights_tf_dim_ordering_tf_kernels_notop.h5",
-            TF_WEIGHTS_PATH_NO_TOP,
-            cache_subdir="models",
-            md5_hash="a268eb855778b3df3c7506639542a6af",
-        )
-        return weights_path
 
     def compile(self, learning_rate, momentum, clear_loss=True):
         """Gets the model ready for training. Adds losses, regularization, and
@@ -4331,8 +4145,6 @@ class MaskRCNN(object):
 
     def train(
         self,
-        train_dataset,
-        val_dataset,
         learning_rate,
         epochs,
         layers,
@@ -4395,7 +4207,7 @@ class MaskRCNN(object):
             self.config.LOSS_WEIGHTS = self.config.CLUS_LOSS_WEIGHTS
 
         train_generator = DataGenerator(
-            train_dataset,
+            self.config.list_of_sites,
             self.config,
             shuffle=False,
             augmentation=augmentation,
@@ -4403,7 +4215,7 @@ class MaskRCNN(object):
             no_augmentation_sources=no_augmentation_sources,
         )
         val_generator = DataGenerator(
-            val_dataset,
+            self.config.val_list_of_sites,
             self.config,
             shuffle=False,
             augmentation=augmentation,
@@ -4604,7 +4416,6 @@ class MaskRCNN(object):
 
     def evaluate_saved_model(
         self,
-        train_dataset,
         learning_rate,
         layers,
         pretrained_model_path=None,
@@ -4614,7 +4425,7 @@ class MaskRCNN(object):
         """evaluate the model"""
 
         train_generator = DataGenerator(
-            train_dataset,
+            self.config.list_of_sites,
             self.config,
             shuffle=False,
             augmentation=augmentation,
@@ -4762,7 +4573,7 @@ class MaskRCNN(object):
         """Returns anchor pyramid for the given image size."""
         backbone_shapes = compute_backbone_shapes(self.config, image_shape)
         # Cache anchors and reuse if image shape is the same
-        print("backbone_shapes", backbone_shapes.shape)
+        # print("backbone_shapes", backbone_shapes.shape)
         # Generate Anchors
         a = utils.generate_pyramid_anchors(
             self.config.RPN_ANCHOR_SCALES,
@@ -4771,7 +4582,7 @@ class MaskRCNN(object):
             self.config.BACKBONE_STRIDES,
             self.config.RPN_ANCHOR_STRIDE,
         )
-        print("a", a.shape)
+        # print("a", a.shape)
         # Keep a copy of the latest anchors in pixel coordinates because
         # it's used in inspect_model notebooks.
         # TODO: Remove this after the notebook are refactored to not use it

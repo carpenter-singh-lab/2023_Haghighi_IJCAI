@@ -22,511 +22,31 @@ from . import spot
 
 
 ###############################################################
-def read_metadata(d_inf, mode):
+def read_metadata(d_inf,dataset_dir, mode):
 
     if len(d_inf) > 3:
-        return read_metadata_site(d_inf, mode)
+        return read_metadata_site(d_inf, dataset_dir, mode)
 
     else:
-        return read_metadata_well(d_inf, mode)
+        return read_metadata_well(d_inf, dataset_dir, mode)
 
 
 ###############################################################
-def read_metadata_site(d_inf, mode):
 
-    batch, plate, well, site = d_inf[0], d_inf[1], d_inf[2], d_inf[3]
 
-    batch_abbrv = batch.split("_")[-1]
-    n_rand_val = 20
-    # number of randomly selected samples for validation
+def read_metadata_well(d_inf, dataset_dir, mode):
+    
+    plate,well=d_inf[1],d_inf[2]
+    batch,batch_abbrev=d_inf[0]
 
     #### directories
     #     dataset_dir='/storage/data/marziehhaghighi/pooledCP/'
-    dataset_dir = "/dgx1nas1/cellpainting-datasets/2018_11_20_Periscope_Calico/"
-
-    #### all data for a batch-well-site information in one dataframe
-    if batch_abbrv == "CP074":
-        dfInfo3 = pd.read_csv(
-            dataset_dir
-            + "/workspace/DL_meta/"
-            + batch_abbrv
-            + "/df-Info-pcp-"
-            + batch
-            + plate
-            + "-"
-            + well
-            + "-"
-            + site
-            + "-compact_new.csv"
-        )  # cp074
-    elif batch_abbrv == "CP228":
-        dfInfo3 = pd.read_csv(
-            dataset_dir
-            + "/workspace/DL_meta/"
-            + batch_abbrv
-            + "/df-Info-pcp-"
-            + batch
-            + plate
-            + "-"
-            + well
-            + "-"
-            + site
-            + "-cp.csv"
-        )  # cp228
-        #         dfInfo3 = pd.read_csv(dataset_dir+'/workspace/DL_meta/'+batch_abbrv+'/df-Info-pcp-'+batch+plate+'-'+well+'-'+site+'-simple.csv')   #cp228
-
-        #         dfInfo3['im_paths']=dfInfo3['im_paths'].apply(lambda x: x.replace('CP228_','CP228A_'))
-        dfInfo3["im_paths"] = dfInfo3["im_paths"].apply(
-            lambda x: correct_address(eval(x))
-        )
-
-    #     dfInfo3=dfInfo3.rename(columns={"Barcode_BarcodeCalled":"Barcode_BarcodeCalled_simple"})
-    #     dfInfo3=dfInfo3.rename(columns={"Barcode_BarcodeCalled_cp":"Barcode_BarcodeCalled"})
-
-    ###### Expand the compact format
-    list_ofCycles = []
-
-    # dfInfo42=dfInfo3.copy()
-    for i in range(9):
-        #         print(i)
-        dfInfo42 = dfInfo3.copy()
-        dfInfo42["Metadata_Cycle"] = i + 1
-        list_ofCycles.append(dfInfo42)
-
-    dfInfo = pd.concat(list_ofCycles).reset_index(drop=True)
-
-    dfInfo["image_id2"] = dfInfo["image_id"]
-
-    dfInfo["cat_id"] = dfInfo.apply(
-        lambda x: eval(x["BarcodeList_cat_id"])[x["Metadata_Cycle"] - 1], axis=1
-    )
-    #     dfInfo["image_id"]=dfInfo.apply(lambda x: x['image_id']+(x['Metadata_Cycle']-1)*323, axis=1)
-
-    dfInfo["image_id"] = np.nan
-    uniq_figs = dfInfo.groupby(["image_id2", "Metadata_Cycle"]).size().reset_index()
-    for r in range(uniq_figs.shape[0]):
-        imi, cy = uniq_figs.loc[r, ["image_id2", "Metadata_Cycle"]].values
-        dfInfo.loc[
-            (dfInfo["image_id2"] == imi) & (dfInfo["Metadata_Cycle"] == cy), "image_id"
-        ] = r
-
-    dfInfo["im_paths"] = dfInfo.apply(
-        lambda x: str(
-            [
-                y.replace("1_", str(x["Metadata_Cycle"]) + "_")
-                for y in eval(x["im_paths"])
-            ]
-        ),
-        axis=1,
-    )
-    #     dct={'1':'A','2':'T','3':'C','4':'G'}
-
-    if batch_abbrv == "CP074":
-        dct = {"1": "A", "2": "T", "3": "C", "4": "G"}  # was used for cp074
-    elif batch_abbrv == "CP228":
-        dct = {"1": "C", "2": "G", "3": "A", "4": "T"}  # was used for cp0228
-        map_dict = {"A": 3, "T": 4, "G": 2, "C": 1}
-
-    #     dct={'A':1,'T':2,'C':3,'G':4} #was used for cp074
-    #     dct={'C':1,'G':2,'A':3,'T':4} #used for cp228
-
-    dfInfo["Metadata_Label"] = dfInfo["cat_id"].apply(
-        lambda x: list(map(dct.get, str(x)))[0]
-    )
-
-    # # ###############
-
-    ### read the raw file for the df Info to form test datset for unannotated images by Marzi
-    # dfInfo_raw = pd.read_csv(dataset_dir+'PILOT_1_maxproj/scLebelsImgs-'+annotDate+'.csv')
-    # dfInfo.loc[(dfInfo['Metadata_Location2']=='na') | (dfInfo['Metadata_Location2']=='?'),'subset_label']="test"
-
-    if mode == "train":
-        #         dfInfo = dfInfo[(dfInfo['Metadata_Cycle']==1) | (dfInfo['Metadata_Cycle']==6)]
-        #         dfInfo = dfInfo[(dfInfo['image_id2']==1)]
-        dfInfo.loc[(dfInfo["image_id2"] == 10), "subset_label"] = "test"
-        dfInfo.loc[(dfInfo["image_id2"] == 30), "subset_label"] = "val"
-
-    elif mode == "inference":
-        dfInfo["subset_label"] = ""
-
-    if batch_abbrv == "CP074":
-        overlay_dir = (
-            dataset_dir
-            + "workspace/analysis/"
-            + batch
-            + "/"
-            + batch_abbrv
-            + plate
-            + "_"
-            + well
-            + "-Site_"
-            + site
-            + "/Site_"
-            + site
-            + "_Overlay.png"
-        )  # CP074
-    elif batch_abbrv == "CP228":
-        overlay_dir = (
-            dataset_dir
-            + "workspace/analysis/"
-            + batch
-            + "/"
-            + batch_abbrv
-            + plate
-            + "-"
-            + well
-            + "-"
-            + site
-            + "/CorrDNA_Site_"
-            + site
-            + "_Overlay.png"
-        )  # CP228
-
-    dfInfo["overlay_dir"] = overlay_dir
-    dfInfo["bbox"] = dfInfo["bbox1"]
-    dfInfo["Location_Center_X"] = dfInfo["Location_Center_X1"]
-    dfInfo["Location_Center_Y"] = dfInfo["Location_Center_Y1"]
-
-    ######### partition dataset to train and validation
-    # dfInfo=dfInfo[dfInfo['subset_label']!='test'].reset_index(drop=True)
-    testImIds = dfInfo[dfInfo["subset_label"] == "test"]["image_id"].unique().tolist()
-    valImIds = dfInfo[dfInfo["subset_label"] == "val"]["image_id"].unique().tolist()
-    #     valImIds=list(np.random.choice(dfInfo[dfInfo['subset_label']!='test']['image_id'].unique().tolist(),n_rand_val))
-    #     trainImIds=list(set(dfInfo['image_id'].unique().tolist())-set(valImIds)-set(testImIds))
-    trainImIds = list(set(dfInfo["image_id"].unique().tolist()) - set(testImIds))
-
-    dfInfo.loc[dfInfo["image_id"].isin(trainImIds), "subset_label"] = "train"
-    #     dfInfo.loc[dfInfo['image_id'].isin(valImIds),'subset_label']="val"
-
-    # prepare train dataset
-    dataset_train = spot.spotsDataset()
-    dataset_train.load_spots(dataset_dir, dfInfo, "train")
-    dataset_train.prepare()
-
-    # prepare validation dataset
-    dataset_val = spot.spotsDataset()
-    dfInfo.loc[dfInfo["image_id"].isin(valImIds), "subset_label"] = "val"
-    dataset_val.load_spots(dataset_dir, dfInfo, "val")
-    dataset_val.prepare()
-
-    ############ Read reference barcode list
-    #     batch='20190919_6W_CP074A'
-    # batch='20190922_6W_CP074B'
-    metadata_dir = dataset_dir + "workspace/metadata/" + batch + "/"
-    metadata_orig = pd.read_csv(metadata_dir + "Barcodes.csv")
-    metadata_orig["prefix9"] = metadata_orig["sgRNA"].apply(lambda x: x[0:9])
-    barcode_ref_list = metadata_orig.prefix9.tolist()
-
-    #     map_dict={'A':1,'T':2,'G':3,'C':4}
-
-    barcode_ref_array = np.zeros((len(barcode_ref_list), 9))
-    barcode_ref_num_list = []
-    for ba in range(len(barcode_ref_list)):
-        barc = list(barcode_ref_list[ba])
-        barcode_ref_num_list.append("".join([str(map_dict[b]) for b in barc]))
-        barcode_ref_array[ba, :] = [map_dict[b] for b in barc]
-
-    return dfInfo, dfInfo3, dataset_train, dataset_val, barcode_ref_array
-
-
-###############################################################
-def read_save_metadata_well(d_inf):
-    # def read_save_metadata_well(d_inf,mode):
-    batch, plate, well = d_inf[0], d_inf[1], d_inf[2]
-
-    batch_abbrv = batch.split("_")[-1]
-    #     n_rand_val=20; # number of randomly selected samples for validation
-
-    #### directories
-    #     dataset_dir='/home/ubuntu/bucket/projects/2018_11_20_Periscope_Calico/'
-    #     dataset_dir='/storage/data/marziehhaghighi/pooledCP/'
-    dataset_dir = "/dgx1nas1/cellpainting-datasets/2018_11_20_Periscope_Calico/"
-
-    #### all data for a batch-well-site information in one dataframe
-    #     if batch_abbrv=='CP074':
-    #         dfInfo3 = pd.read_csv(dataset_dir+'/workspace/DL_meta/'+batch_abbrv+'/df-Info-pcp-'+batch+plate+'-'+well+'-'+site+'-compact_new.csv') #cp074
-    #     elif batch_abbrv=='CP228':
-
-    dl_meta_all = os.listdir(dataset_dir + "/workspace/DL_meta/" + batch_abbrv)
-    dl_meta_well = [
-        f for f in dl_meta_all if batch + plate + "-" + well in f and "-cp" in f
-    ]
-    ls_data_train = []
-    ls_data_val = []
-    #     ls_dfInfo=[]
-    for sfn in dl_meta_well:
-        dfInfo3 = pd.read_csv(
-            dataset_dir + "/workspace/DL_meta/" + batch_abbrv + "/" + sfn
-        )
-        dfInfo3["im_paths"] = dfInfo3["im_paths"].apply(
-            lambda x: correct_address(eval(x))
-        )
-
-        #     dfInfo3=dfInfo3.rename(columns={"Barcode_BarcodeCalled":"Barcode_BarcodeCalled_simple"})
-        #     dfInfo3=dfInfo3.rename(columns={"Barcode_BarcodeCalled_cp":"Barcode_BarcodeCalled"})
-
-        ###### Expand the compact format
-        list_ofCycles = []
-
-        # dfInfo42=dfInfo3.copy()
-        for i in range(9):
-            #         print(i)
-            dfInfo42 = dfInfo3.copy()
-            dfInfo42["Metadata_Cycle"] = i + 1
-            list_ofCycles.append(dfInfo42)
-
-        dfInfo = pd.concat(list_ofCycles).reset_index(drop=True)
-
-        dfInfo["image_id2"] = dfInfo["image_id"]
-
-        dfInfo["cat_id"] = dfInfo.apply(
-            lambda x: eval(x["BarcodeList_cat_id"])[x["Metadata_Cycle"] - 1], axis=1
-        )
-        #     dfInfo["image_id"]=dfInfo.apply(lambda x: x['image_id']+(x['Metadata_Cycle']-1)*323, axis=1)
-
-        dfInfo["image_id"] = np.nan
-        uniq_figs = dfInfo.groupby(["image_id2", "Metadata_Cycle"]).size().reset_index()
-        for r in range(uniq_figs.shape[0]):
-            imi, cy = uniq_figs.loc[r, ["image_id2", "Metadata_Cycle"]].values
-            dfInfo.loc[
-                (dfInfo["image_id2"] == imi) & (dfInfo["Metadata_Cycle"] == cy),
-                "image_id",
-            ] = r
-
-        dfInfo["im_paths"] = dfInfo.apply(
-            lambda x: str(
-                [
-                    y.replace("1_", str(x["Metadata_Cycle"]) + "_")
-                    for y in eval(x["im_paths"])
-                ]
-            ),
-            axis=1,
-        )
-        #     dct={'1':'A','2':'T','3':'C','4':'G'}
-
-        if batch_abbrv == "CP074":
-            dct = {"1": "A", "2": "T", "3": "C", "4": "G"}  # was used for cp074
-        elif batch_abbrv == "CP228":
-            dct = {"1": "C", "2": "G", "3": "A", "4": "T"}  # was used for cp0228
-            map_dict = {"A": 3, "T": 4, "G": 2, "C": 1}
-            im_orig_size = 5500
-
-        #     dct={'A':1,'T':2,'C':3,'G':4} #was used for cp074
-        #     dct={'C':1,'G':2,'A':3,'T':4} #used for cp228
-
-        dfInfo["Metadata_Label"] = dfInfo["cat_id"].apply(
-            lambda x: list(map(dct.get, str(x)))[0]
-        )
-
-        # # ###############
-
-        if batch_abbrv == "CP074":
-            overlay_dir = (
-                dataset_dir
-                + "workspace/analysis/"
-                + batch
-                + "/"
-                + batch_abbrv
-                + plate
-                + "_"
-                + well
-                + "-Site_"
-                + site
-                + "/Site_"
-                + site
-                + "_Overlay.png"
-            )  # CP074
-        elif batch_abbrv == "CP228":
-            #             overlay_dir=dataset_dir+"workspace/analysis/"+batch+"/"+batch_abbrv+plate+"-"+well+"-"+site+"/CorrDNA_Site_"+site+"_Overlay.png" # CP228
-            dfInfo["overlay_dir"] = (
-                dataset_dir
-                + "workspace/analysis/"
-                + batch
-                + "/"
-                + batch_abbrv
-                + plate
-                + "-"
-                + well
-                + "-"
-                + dfInfo["Metadata_Site"].astype(str)
-                + "/CorrDNA_Site_"
-                + dfInfo["Metadata_Site"].astype(str)
-                + "_Overlay.png"
-            )  # CP228
-
-        #         dfInfo["overlay_dir"]=overlay_dir
-        dfInfo["bbox"] = dfInfo["bbox1"]
-        dfInfo["Location_Center_X"] = dfInfo["Location_Center_X1"]
-        dfInfo["Location_Center_Y"] = dfInfo["Location_Center_Y1"]
-
-        #     read whole site image
-        #         originalURLpath="dataParentFolder/20210124_6W_CP228/images_corrected_cropped/"
-        #         toBeReplaced='/home/ubuntu/calbucket/projects/2018_11_20_Periscope_Calico/20210124_6W_CP228/images_aligned_stitched/images_corrected_cropped/'
-
-        originalURLpath = "dataParentFolder"
-        #         toBeReplaced='/storage/data/marziehhaghighi/pooledCP/'
-        #         toBeReplaced='/data1/data/marziehhaghighi/pooledCP/'
-        toBeReplaced = "/dgx1nas1/cellpainting-datasets/2018_11_20_Periscope_Calico/"
-
-        listOfPaths = eval(dfInfo3.im_paths.unique()[0])
-
-        cropped_im_dim = 256
-        cropped_im_dim_h = int(cropped_im_dim / 2)
-
-        site = dfInfo["Metadata_Site"].values[0]
-        batchplate_well = batch_abbrv + plate + "_" + well
-
-        #         save_folder='/home/ubuntu/bucket/projects/2018_11_20_Periscope_Calico/workspace/dl_presaved/20210124_6W_CP228/im_cr_presaved/'+batchplate_well+'/'
-        #         save_folder='/storage/data/marziehhaghighi/pooledCP/20210124_6W_CP228/im_cr_presaved/'+batchplate_well+'/'
-
-        im_target_size = (int(im_orig_size / cropped_im_dim) + 1) * cropped_im_dim
-
-        if 1:
-            image = np.zeros((im_target_size, im_target_size, 4, 9), dtype="uint8")
-            for chi in range(len(listOfPaths)):
-                #             print("imPath",imPath)
-                imPath = listOfPaths[chi].replace(originalURLpath, toBeReplaced)
-
-                for ci in range(9):
-                    imPath2 = imPath.replace("Cycle01", "Cycle0" + str(ci + 1))
-                    im_uint16 = skimage.io.imread(imPath2)  # images are 'uint16'
-                    im_max_2scale = im_uint16.max()
-                    im_uint8 = ((im_uint16 / im_max_2scale) * 255).astype("uint8")
-                    image[:im_orig_size, :im_orig_size, chi, ci] = im_uint8
-
-        ######## If you want to save each image ID uncomment below line
-        if 1:
-            save_folder = (
-                dataset_dir
-                + "/20210124_6W_CP228/im_cr_presaved/"
-                + batchplate_well
-                + "/"
-            )
-            if not os.path.isdir(save_folder):
-                os.mkdir(save_folder)
-
-            for crimid in np.arange(0, r + 1):
-                crop_y_cent, crop_x_cent, cr_cyc = (
-                    dfInfo.loc[
-                        dfInfo["image_id"] == crimid,
-                        ["im_Center_X", "im_Center_Y", "Metadata_Cycle"],
-                    ]
-                    .astype(int)
-                    .values[0]
-                )
-
-                cr_br_x_b = crop_x_cent - cropped_im_dim_h
-                cr_br_y_b = crop_y_cent - cropped_im_dim_h
-                cr_br_x_t = crop_x_cent + cropped_im_dim_h
-                cr_br_y_t = crop_y_cent + cropped_im_dim_h
-
-                cr_image = image[
-                    cr_br_x_b:cr_br_x_t, cr_br_y_b:cr_br_y_t, :, cr_cyc - 1
-                ]
-
-                with open(
-                    save_folder + "im_" + str(site) + "_" + str(int(crimid)) + ".npy",
-                    "wb",
-                ) as f:
-                    np.save(f, cr_image)
-
-        ######## If you want to save the whole batch uncomment below line
-        if 0:
-            save_folder = (
-                dataset_dir
-                + "/20210124_6W_CP228/im_cr_batch_presaved/"
-                + batchplate_well
-                + "/"
-            )
-            if not os.path.isdir(save_folder):
-                os.mkdir(save_folder)
-
-            for crimid in np.arange(0, r + 1, 9):
-                crop_y_cent, crop_x_cent = (
-                    dfInfo.loc[
-                        dfInfo["image_id"] == crimid, ["im_Center_X", "im_Center_Y"]
-                    ]
-                    .astype(int)
-                    .values[0]
-                )
-
-                cr_br_x_b = crop_x_cent - cropped_im_dim_h
-                cr_br_y_b = crop_y_cent - cropped_im_dim_h
-                cr_br_x_t = crop_x_cent + cropped_im_dim_h
-                cr_br_y_t = crop_y_cent + cropped_im_dim_h
-
-                cr_image = image[cr_br_x_b:cr_br_x_t, cr_br_y_b:cr_br_y_t, :, :]
-
-                with open(
-                    save_folder + "im_" + str(site) + "_" + str(int(crimid)) + ".npy",
-                    "wb",
-                ) as f:
-                    np.save(f, cr_image)
-
-        ######### partition dataset to train and validation
-        # dfInfo=dfInfo[dfInfo['subset_label']!='test'].reset_index(drop=True)
-        #         testImIds=dfInfo[dfInfo['subset_label']=='test']['image_id'].unique().tolist()
-        #         valImIds=dfInfo[dfInfo['subset_label']=='val']['image_id'].unique().tolist()
-        #     valImIds=list(np.random.choice(dfInfo[dfInfo['subset_label']!='test']['image_id'].unique().tolist(),n_rand_val))
-        #     trainImIds=list(set(dfInfo['image_id'].unique().tolist())-set(valImIds)-set(testImIds))
-        #         trainImIds=list(set(dfInfo['image_id'].unique().tolist())-set(testImIds))
-        trainImIds = set(dfInfo["image_id"].unique().tolist())
-
-        dfInfo.loc[dfInfo["image_id"].isin(trainImIds), "subset_label"] = "train"
-        #     dfInfo.loc[dfInfo['image_id'].isin(valImIds),'subset_label']="val"
-
-        # prepare train dataset
-        dataset_train = spot.spotsDataset()
-        dataset_train.load_spots(dfInfo, "train")
-        #         dataset_train.load_spots(dataset_dir,dfInfo,"train")
-        dataset_train.prepare()
-        ls_data_train.append(dataset_train)
-
-        ###### To save as a single Dataset instead of the list
-    #         dfInfo['subset_label']="train"
-    #         dfInfo['image_id']=dfInfo['image_id']+id_2add
-
-    #         ls_dfInfo.append(dfInfo)
-    #         id_2add=dfInfo.image_id.unique().max()
-
-    #         ls_dfInfo.append(dfInfo)
-
-    #     ###### To save as a single Dataset instead of the list
-    #     dataset_train = spot.spotsDataset()
-    #     dataset_train.load_spots(pd.concat(ls_dfInfo),"train")
-    #     dataset_train.prepare()
-
-    save_do_dir = dataset_dir + "workspace/DL_WellSiteObjects/" + batch_abbrv + "/"
-
-    if not os.path.isdir(save_do_dir):
-        os.mkdir(save_do_dir)
-
-    with open(save_do_dir + plate + "_" + well + "_do_t.dat", "wb") as f:
-        pickle.dump(ls_data_train, f)
-
-    #     with open(save_do_dir+plate+'_'+well+'_dfInfo.dat', "wb") as f:
-    #         pickle.dump(ls_dfInfo, f)
-
-    return
-
-
-###############################################################
-
-
-def read_metadata_well(d_inf, mode):
-    batch, plate, well = d_inf[0], d_inf[1], d_inf[2]
-
-    batch_abbrv = batch.split("_")[-1]
-    #     n_rand_val=20; # number of randomly selected samples for validation
-
-    #### directories
-    #     dataset_dir='/storage/data/marziehhaghighi/pooledCP/'
-    dataset_dir = "/dgx1nas1/cellpainting-datasets/2018_11_20_Periscope_Calico/"
+    # dataset_dir = "/dgx1nas1/cellpainting-datasets/2018_11_20_Periscope_Calico/"
 
     save_do_dir_do = (
         dataset_dir
         + "workspace/DL_WellSiteObjects/"
-        + batch_abbrv
+        + batch_abbrev
         + "/"
         + plate
         + "_"
@@ -548,7 +68,7 @@ def read_metadata_well(d_inf, mode):
         save_do_dir_dfInfo = (
             dataset_dir
             + "workspace/DL_WellSiteObjects/"
-            + batch_abbrv
+            + batch_abbrev
             + "/"
             + plate
             + "_"
@@ -560,58 +80,6 @@ def read_metadata_well(d_inf, mode):
 
         return [], ls_dfInfo, ls_data_train, [], barcode_ref_array
 
-
-def config_model(d_inf):
-
-    batch = d_inf[0]
-    save_model_subdir = "_".join(d_inf[1:])
-
-    config = spot.spotConfig()
-    config.batchplate_well = d_inf[0].split("_")[-1] + d_inf[1] + "_" + d_inf[2]
-    ####################### Model Parameters
-    # use of pretrained models --> "imagenet","coco","scratch","last","fixed"
-    config.init_with = "fixed"
-
-    # layers to train --> "all" , "heads"
-    config.layers_to_tune = "all"
-
-    # assign_label_mode --> "clustering","classification"
-    config.assign_label_mode = "clustering"
-
-    # learning rate
-    #     config.lr=10*config.LEARNING_RATE
-    config.lr = 10 * config.LEARNING_RATE
-    config.LEARNING_MOMENTUM = 0.5
-    config.display()
-    #     print("lr",lr)
-
-    #     MODEL_Root_DIR ="/storage/data/marziehhaghighi/DL_trained_models/mrcnn/"
-    MODEL_Root_DIR = "/dgx1nas1/storage/data/marziehhaghighi/DL_trained_models/mrcnn/"
-
-    ###########################
-    #     config.project_name=project_name
-    #     config.head=maskBranchNet;
-    #     config.assign_label_mode =assign_label_mode#"clustering","classification"
-    # fileNumModel=assign_label_mode+'_init_with_'+init_with+'_maskNet_'+maskBranchNet+'_train_'+layers_to_tune;
-    # MODEL_DIR = os.path.join(model_dir+fileNumModel+"/")
-
-    fileNumModel = (
-        "pretrained_"
-        + config.init_with
-        + "_train_"
-        + config.layers_to_tune
-        + "_lr_"
-        + str(config.lr)
-        + "_"
-        + config.assign_label_mode[0:5]
-    )
-
-    MODEL_DIR = (
-        MODEL_Root_DIR + config.NAME + "/" + save_model_subdir + "/" + fileNumModel
-    )
-    return MODEL_DIR, config
-
-
 ###############################################################
 
 
@@ -621,43 +89,6 @@ def check_saved_model_config_params(model_direc, config_params_ls):
     for p in config_params_ls:
         print(p, inference_config_loaded[p])
     return
-
-
-###############################################################
-
-
-def train_model(config, MODEL_DIR, dataset_train, dataset_val, which_gpu):
-
-    os.environ["CUDA_VISIBLE_DEVICES"] = which_gpu
-
-    import barcodefit.model.barcode_calling as modellib
-
-    model = modellib.MaskRCNN(mode="training", config=config, model_dir=MODEL_DIR)
-
-    #     MODEL_Root_DIR ="/storage/data/marziehhaghighi/DL_trained_models/mrcnn/"
-    MODEL_Root_DIR = "/dgx1nas1/storage/data/marziehhaghighi/DL_trained_models/mrcnn/"
-    #         model.load_weights(model_fixed, by_name=True)
-
-    model.train(
-        dataset_train,
-        dataset_val,
-        learning_rate=config.lr,
-        epochs=config.epochs,
-        layers=config.layers_to_tune,
-    )
-
-    return
-
-
-###############################################################
-def correct_address(x_list):
-    y_list = []
-    for x in x_list:
-        y = x.split("/")  # .replace('Site','sdfdsfs')
-        #         del y[-4]
-        y[-1] = y[-2] + "_" + y[-1]
-        y_list.append("/".join(y))
-    return str(y_list)
 
 
 ###############################################################
@@ -799,265 +230,159 @@ def read_results_to_df(training_results_file, epoch_filter_list):
 
 
 # #######################################################
-def map_barcodes_to_cells_by_overlays_whole_site(
-    ds_site, d_inf, dataset_dir, model_params, barcode_ref_array, matched_flag
-):
+def map_barcodes_to_cells_by_overlays_whole_site(img_site, d_inf,dataset_dir,model_params,barcode_ref_array,seq_L,matched_flag):
     """
     Assigns barcodes to cells
-
+    
     steps:
     - Read Overlay.png and Nuclei.csv files for the whole site
         The for each cropped image:
         - Form address for each image id barcodes detected
         - Read saved barcodes and locations through read_results_to_df call
         - Read the overlay to assign barcodes to cells through masks and detected centers
+    
+    """  
+    
+    
+    plate,well=d_inf[1],d_inf[2]
+    batch,batch_abbrev=d_inf[0]
 
-    """
+    dl_meta_Dir=dataset_dir+'/workspace/DL_meta/'+batch+'/'
+    
+    dfInfo3 = pd.read_csv(f'{dl_meta_Dir}df_Info_pcp_{batch_abbrev}{plate}_{well}_{img_site}_cp.csv')
+#     seq_L=int(dfInfo3['Metadata_Cycle'].max())
+    dfInfo_1=dfInfo3[["image_id","im_Center_X","im_Center_Y"]].sort_values(by='image_id').\
+                        drop_duplicates().reset_index(drop=True)
+    dfInfo_1["image_id_cr"] =list(range(0,dfInfo_1["image_id"].unique().shape[0]*seq_L,seq_L))   
 
-    batch, plate, well = d_inf[0], d_inf[1], d_inf[2]
-    batch_abbrv = batch.split("_")[-1]
 
-    cropped_im_dim = 256
-    orig_im_w = 5500
-    cropped_im_dim_h = int(cropped_im_dim / 2)
+    cropped_im_dim=256;orig_im_w=5500;
+    cropped_im_dim_h=int(cropped_im_dim/2)
+    
+    print("img_site",img_site)
+    
+    overlay_dir = os.path.join(dataset_dir, "workspace", "analysis",\
+               batch, batch_abbrev + plate+ "-"+ well + "-" + str(img_site), f"CorrDNA_Site_{img_site}_Overlay.png")
 
-    image_ids_inside_site = ds_site.image_ids
-    #     img_site=int(ds_site.image_info[image_ids_inside_site[0]]["overlay_dir"].split('_')[-2])
-    img_site = int(ds_site.image_info[image_ids_inside_site[0]]["site"])
-    print("img_site", img_site)
+    ov_im=resize(skimage.io.imread(overlay_dir), (orig_im_w,orig_im_w),mode='constant',preserve_range=True,order=0).astype('uint8')
+    
+    
+    nucl_csv=pd.read_csv(dataset_dir+"workspace/analysis/"+batch+"/"+batch_abbrev+plate+"-"+well+"-"+\
+        str(img_site)+"/Nuclei.csv")
+    print('nucl_csv',nucl_csv.shape,nucl_csv[nucl_csv['ObjectNumber']!=0].shape)
 
-    overlay_dir = (
-        dataset_dir
-        + "workspace/analysis/"
-        + batch
-        + "/"
-        + batch_abbrv
-        + plate
-        + "-"
-        + well
-        + "-"
-        + str(img_site)
-        + "/CorrDNA_Site_"
-        + str(img_site)
-        + "_Overlay.png"
-    )
-    ov_im = resize(
-        skimage.io.imread(overlay_dir),
-        (orig_im_w, orig_im_w),
-        mode="constant",
-        preserve_range=True,
-        order=0,
-    ).astype("uint8")
+    
+    bins=np.array(range(128,5633,256))
+    single_feature_vals_discrete_x=np.digitize(nucl_csv.Location_Center_X.values, range(256,5633,256),right=True)
+    single_feature_vals_discrete_y=np.digitize(nucl_csv.Location_Center_Y.values, range(256,5633,256),right=True)
 
-    nucl_csv = pd.read_csv(
-        dataset_dir
-        + "workspace/analysis/"
-        + batch
-        + "/"
-        + batch_abbrv
-        + plate
-        + "-"
-        + well
-        + "-"
-        + str(img_site)
-        + "/Nuclei.csv"
-    )
-    # print('nucl_csv',nucl_csv.shape,nucl_csv[nucl_csv['ObjectNumber']!=0].shape)
-    ############ Read reference barcode list
-    #     metadata_dir=dataset_dir+'workspace/metadata/'+batch+'/'
-    #     metadata_orig= pd.read_csv(metadata_dir+'Barcodes.csv')
-    #     metadata_orig['prefix9']=metadata_orig["sgRNA"].apply(lambda x: x[0:9])
-    #     barcode_ref_list=metadata_orig.prefix9.tolist()
+    nucl_csv['im_Center_X']=[bins[s] for s in single_feature_vals_discrete_x]
+    nucl_csv['im_Center_Y']=[bins[s] for s in single_feature_vals_discrete_y]
+    nucl_csv['Nuclei_Location_Center_X1']=nucl_csv['Location_Center_X']-nucl_csv['im_Center_X']+128
+    nucl_csv['Nuclei_Location_Center_Y1']=nucl_csv['Location_Center_Y']-nucl_csv['im_Center_Y']+128
+    
+    nucl_csv=nucl_csv.rename(columns={"ObjectNumber":"Parent_Cells",\
+      'Location_Center_X':'Nuclei_Location_Center_X','Location_Center_Y':'Nuclei_Location_Center_Y'})
+    
+    nucl_csv.loc[nucl_csv['Nuclei_Location_Center_Y1']>255,'Nuclei_Location_Center_Y1']=255
+    nucl_csv.loc[nucl_csv['Nuclei_Location_Center_X1']>255,'Nuclei_Location_Center_X1']=255
+#     dfInfo_site=dfInfo_comp[site_idx]
 
-    bins = np.array(range(128, 5633, 256))
-    single_feature_vals_discrete_x = np.digitize(
-        nucl_csv.Location_Center_X.values, range(256, 5633, 256), right=True
-    )
-    single_feature_vals_discrete_y = np.digitize(
-        nucl_csv.Location_Center_Y.values, range(256, 5633, 256), right=True
-    )
-
-    nucl_csv["im_Center_X"] = [bins[s] for s in single_feature_vals_discrete_x]
-    nucl_csv["im_Center_Y"] = [bins[s] for s in single_feature_vals_discrete_y]
-    nucl_csv["Nuclei_Location_Center_X1"] = (
-        nucl_csv["Location_Center_X"] - nucl_csv["im_Center_X"] + 128
-    )
-    nucl_csv["Nuclei_Location_Center_Y1"] = (
-        nucl_csv["Location_Center_Y"] - nucl_csv["im_Center_Y"] + 128
-    )
-
-    nucl_csv = nucl_csv.rename(
-        columns={
-            "ObjectNumber": "Parent_Cells",
-            "Location_Center_X": "Nuclei_Location_Center_X",
-            "Location_Center_Y": "Nuclei_Location_Center_Y",
-        }
-    )
-
-    nucl_csv.loc[
-        nucl_csv["Nuclei_Location_Center_Y1"] > 255, "Nuclei_Location_Center_Y1"
-    ] = 255
-    nucl_csv.loc[
-        nucl_csv["Nuclei_Location_Center_X1"] > 255, "Nuclei_Location_Center_X1"
-    ] = 255
-    #     dfInfo_site=dfInfo_comp[site_idx]
-
-    cells_df_site = nucl_csv[
-        [
-            "Parent_Cells",
-            "Nuclei_Location_Center_X1",
-            "Nuclei_Location_Center_Y1",
-            "Nuclei_Location_Center_X",
-            "Nuclei_Location_Center_Y",
-            "im_Center_X",
-            "im_Center_Y",
-        ]
-    ].astype(int)
-
-    model_direc, epoch_filter_list = model_params
-
-    site_results_list = []
-    saved_image_ids_inside_site = image_ids_inside_site[0::9]
-    for cr_im in saved_image_ids_inside_site:
-
-        training_results_file = (
-            model_direc
-            + "/seqs"
-            + matched_flag
-            + "/im_id_"
-            + str(img_site)
-            + "_"
-            + str(cr_im)
-            + ".txt"
-        )
+    cells_df_site = nucl_csv[["Parent_Cells","Nuclei_Location_Center_X1","Nuclei_Location_Center_Y1",\
+                            "Nuclei_Location_Center_X","Nuclei_Location_Center_Y",\
+                           "im_Center_X","im_Center_Y"]].astype(int)
+    
+    model_direc,epoch_filter_list=model_params
+    
+    
+    site_results_list=[]
+    saved_image_ids_inside_site=dfInfo_1["image_id_cr"].unique()
+#     saved_image_ids_inside_site=image_ids_inside_site[0::9]
+    for cr_im in saved_image_ids_inside_site:           
+        
+        training_results_file=model_direc+'/seqs'+matched_flag+'/im_id_'+str(img_site)+'_'+str(cr_im)+'.txt'    
         if os.path.exists(training_results_file):
             ### Read results saved during training
-            update_df = read_results_to_df(training_results_file, epoch_filter_list)
-            #         update_df=update_df[update_df['epoch']==52].reset_index(drop=True)
-
+            update_df=read_results_to_df(training_results_file,epoch_filter_list)
+            
             if 1:
-                #                 find the closest reflin barcode
-                #                 map_dict={'A':3,'T':4,'G':2,'C':1}
-                update_df["dist_2_ref"] = update_df.apply(
-                    lambda x: utils.map_to_barcode_min_Hdist(
-                        [
-                            int(x["0"]),
-                            int(x["1"]),
-                            int(x["2"]),
-                            int(x["3"]),
-                            int(x["4"]),
-                            int(x["5"]),
-                            int(x["6"]),
-                            int(x["7"]),
-                            int(x["8"]),
-                        ],
-                        barcode_ref_array,
-                    )[1],
-                    axis=1,
+#                 find the closest reflin barcode
+#                 map_dict={'A':3,'T':4,'G':2,'C':1}
+                update_df['dist_2_ref'] = update_df.apply(
+                    lambda row: utils.map_to_barcode_min_Hdist(
+                        [int(row[str(i)]) for i in range(seq_L)], 
+                        barcode_ref_array
+                    )[1], 
+                    axis=1
                 )
-            ### Read the overlay to group the results for cell calling
-            crop_y_cent, crop_x_cent = (
-                round(ds_site.image_info[cr_im]["im_Center_X"]),
-                round(ds_site.image_info[cr_im]["im_Center_Y"]),
-            )
-            ovly = np.zeros((cropped_im_dim, cropped_im_dim, 3))
 
-            cr_br_x_b = crop_x_cent - cropped_im_dim_h
-            cr_br_y_b = crop_y_cent - cropped_im_dim_h
-            cr_br_x_t = np.min([crop_x_cent + cropped_im_dim_h, orig_im_w])
-            cr_br_y_t = np.min([crop_y_cent + cropped_im_dim_h, orig_im_w])
 
-            ovly[: (cr_br_x_t - cr_br_x_b), : (cr_br_y_t - cr_br_y_b), :] = ov_im[
-                cr_br_x_b:cr_br_x_t, cr_br_y_b:cr_br_y_t, :
-            ]
-            #         ovly = ds_site.load_overlay(int(cr_im))
+            crop_y_cent,crop_x_cent = dfInfo_1.loc[dfInfo_1['image_id_cr']==cr_im,\
+                                                   ["im_Center_X","im_Center_Y"]].round().astype(int).values[0]
 
-            #             dfInfo_site_cr=dfInfo_site[dfInfo_site['image_id']==cr_im]
+            ovly=np.zeros((cropped_im_dim, cropped_im_dim,3))
 
-            ###
+            cr_br_x_b=crop_x_cent-cropped_im_dim_h
+            cr_br_y_b=crop_y_cent-cropped_im_dim_h
+            cr_br_x_t=np.min([crop_x_cent+cropped_im_dim_h,orig_im_w])
+            cr_br_y_t=np.min([crop_y_cent+cropped_im_dim_h,orig_im_w])
 
-            cells_df = cells_df_site[
-                (cells_df_site["im_Center_X"] == crop_y_cent)
-                & (cells_df_site["im_Center_Y"] == crop_x_cent)
-            ].reset_index(drop=True)
-            #             hjdsf
-            #             cells_df = dfInfo_site_cr.groupby(["Parent_Cells","Nuclei_Location_Center_X1","Nuclei_Location_Center_Y1",\
-            #                         "Nuclei_Location_Center_X","Nuclei_Location_Center_Y",\
-            #                        "im_Center_X","im_Center_Y"]).size().reset_index().astype(int)
+#             pdb.set_trace()
+            ovly[:(cr_br_x_t-cr_br_x_b),:(cr_br_y_t-cr_br_y_b),:]=\
+            ov_im[cr_br_x_b:cr_br_x_t,cr_br_y_b:cr_br_y_t,:]
 
-            #             cells_df.loc[cells_df['Nuclei_Location_Center_Y1']<0,'Nuclei_Location_Center_Y1']=0
-            #             cells_df.loc[cells_df['Nuclei_Location_Center_X1']<0,'Nuclei_Location_Center_X1']=0
-            #             cells_df.loc[cells_df['Nuclei_Location_Center_Y1']>255,'Nuclei_Location_Center_Y1']=255
-            #             cells_df.loc[cells_df['Nuclei_Location_Center_X1']>255,'Nuclei_Location_Center_X1']=255
+
+
+            cells_df=cells_df_site[(cells_df_site['im_Center_X']==crop_y_cent) & (cells_df_site['im_Center_Y']==crop_x_cent)].reset_index(drop=True)
+
 
             from skimage.segmentation import flood_fill
-
-            cell_color = (255, 255, 255)
-            cell_bound = np.copy(ovly)
+            cell_color=(255,255,255)
+            cell_bound=np.copy(ovly)
             indices_not_w = np.where(~np.all(cell_bound == cell_color, axis=-1))
-            cell_bound[indices_not_w] = 0
-            colored_cells = cell_bound[:, :, 0].astype(int)
-            parent_cells = cells_df.Parent_Cells.unique().tolist()
+            cell_bound[indices_not_w]=0
+            colored_cells=cell_bound[:,:,0].astype(int)
+            parent_cells=cells_df.Parent_Cells.unique().tolist()
             for p in parent_cells:
-                cent_x, cent_y = cells_df.loc[
-                    cells_df["Parent_Cells"] == p,
-                    ["Nuclei_Location_Center_X1", "Nuclei_Location_Center_Y1"],
-                ].values[0]
-                colored_cells = flood_fill(
-                    colored_cells, (cent_y, cent_x), p, connectivity=1
-                )
+                cent_x,cent_y=cells_df.loc[cells_df['Parent_Cells']==p,["Nuclei_Location_Center_X1","Nuclei_Location_Center_Y1"]].values[0]
+                colored_cells = flood_fill(colored_cells,(cent_y,cent_x),p,connectivity=1)
 
-            dct = {1: "C", 2: "G", 3: "A", 4: "T"}  # was used for cp0228
-            map_dict = {"A": 3, "T": 4, "G": 2, "C": 1}
+#             dct={1:'C',2:'G',3:'A',4:'T'} #was used for cp0228  
+            map_dict={'A':3,'T':4,'G':2,'C':1}
+            reverse_map_dict = {v: k for k, v in map_dict.items()}   
 
-            for c in range(9):
-                update_df = update_df.replace({str(c): dct})
+            for c in range(seq_L):
+                update_df=update_df.replace({str(c): reverse_map_dict})
 
-            update_df["Barcodes_called_dl"] = update_df[
-                ["0", "1", "2", "3", "4", "5", "6", "7", "8"]
-            ].sum(axis=1)
-            update_df["Barcodes_called_sumP"] = update_df[
-                ["p0", "p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8"]
-            ].sum(axis=1)
-            update_df["Barcodes_called_medP"] = update_df[
-                ["p0", "p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8"]
-            ].median(axis=1)
-            update_df["Barcodes_called_prodP"] = update_df[
-                ["p0", "p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8"]
-            ].product(axis=1)
 
-            bb_ys = update_df["bb_center_y"].astype(int).values
-            bb_xs = update_df["bb_center_x"].astype(int).values
+            col_names = [str(i) for i in range(seq_L)]
+            p_col_names = ['p' + str(i) for i in range(seq_L)]
 
-            update_df["Parent_Cells"] = colored_cells[bb_ys, bb_xs]
-            update_df["im_Center_X"] = crop_y_cent
-            update_df["im_Center_Y"] = crop_x_cent
+            # Perform operations
+            update_df['Barcodes_called_dl'] = update_df[col_names].sum(axis=1)
+            update_df['Barcodes_called_sumP'] = update_df[p_col_names].sum(axis=1)
+            update_df['Barcodes_called_medP'] = update_df[p_col_names].median(axis=1)
+            update_df['Barcodes_called_prodP'] = update_df[p_col_names].product(axis=1)
+            
+            
 
-            #             print("Number of cells with barcode using CP: ",dfInfo_site_cr.Parent_Cells.unique().shape[0])
-            #             print("Number of cells with barcode using DL: ",update_df.Parent_Cells.unique().shape[0])
+            bb_ys=update_df['bb_center_y'].astype(int).values
+            bb_xs=update_df['bb_center_x'].astype(int).values
 
-            #         ### Spot calling for the croped image
-            #         crop_pp=(dfInfo_site_cr[dfInfo_site_cr["Barcode_BarcodeCalled"].isin(barcode_ref_list)].shape[0])/dfInfo_site_cr.shape[0]
-            #         print("crop_spot_calling_cp: ",crop_pp)
+            update_df['Parent_Cells']=colored_cells[bb_ys,bb_xs]            
+            update_df['im_Center_X']=crop_y_cent
+            update_df['im_Center_Y']=crop_x_cent
+            
 
-            #         crop_pp=(update_df[update_df["Barcodes_called_dl"].isin(barcode_ref_list)].shape[0])/update_df.shape[0]
-            #         print("crop_spot_calling_dl: ",crop_pp)
+            update_df['Metadata_Site']=img_site
+            update_df['image_id']=cr_im      
 
-            update_df["Metadata_Site"] = img_site
-            update_df["image_id"] = cr_im
-            #             update_df=map_barcodes_to_cells_by_overlays(img_site, cr_im, ds_site, model_direc);
-            #             if update_df:
-            site_results_list.append(update_df)
-
-    #         else:
-    #             print("Warning! "+'im_id_'+str(img_site)+'_'+str(cr_im)+'.txt doesnt exist!')
-
+            site_results_list.append(update_df);
+       
+                 
     return site_results_list, nucl_csv.shape[0]
 
 
-import skimage.io
-from skimage.transform import downscale_local_mean, rescale, resize
-from skimage.util import img_as_float, img_as_ubyte, img_as_uint
 
 
 def read_ngs_counts_4target_well(ngs_csv_file, well):
@@ -1109,17 +434,10 @@ def read_resize_overlay_pooled(overlay_dir, orig_im_w):
     return img_as_ubyte(ov_im)
 
 
-#     return ov_im
-
-
 def read_barcode_list(metadata_dir):
 
-    # #     map_dict={'A':1,'T':2,'G':3,'C':4}
-    #     if batch_abbrv=='CP074':
-    #         dct={'1':'A','2':'T','3':'C','4':'G'} #was used for cp074
-    #     elif batch_abbrv=='CP228':
-    dct = {"1": "C", "2": "G", "3": "A", "4": "T"}  # was used for cp0228
     map_dict = {"A": 3, "T": 4, "G": 2, "C": 1}
+    # reverse_map_dict = {v: k for k, v in map_dict.items()}   
 
     metadata_orig = pd.read_csv(metadata_dir + "CP228_Experimental_Codebook.csv")
     metadata_orig["prefix9"] = metadata_orig["sgRNA"].apply(lambda x: x[0:9])
@@ -1140,11 +458,11 @@ def read_barcode_list(metadata_dir):
 
 
 def spot_level_to_cell_level_assignments(
-    dataset_train_ls, d_inf, sites_ind, model_params, matched_flag
+    d_inf, sites_ind,dataset_dir, model_params, matched_flag
 ):
 
     well = d_inf[2]
-
+    seq_L=9
     ngs_csv_file = "./resource/CP228_NGS_Reads_And_Library_Mapped.csv"
     ngs_counts = read_ngs_counts_4target_well(ngs_csv_file, well)
 
@@ -1154,19 +472,20 @@ def spot_level_to_cell_level_assignments(
     well_results_list = []
     # sites_ind=[30,31]
     #     sites_ind=list(range(len(dataset_train_ls)))
-    dataset_dir = "/dgx1nas1/cellpainting-datasets/2018_11_20_Periscope_Calico/"
+    # dataset_dir = "/dgx1nas1/cellpainting-datasets/2018_11_20_Periscope_Calico/"
     # pdb.set_trace()
     for site_idx in sites_ind:
 
         start = time.time()
-        ds_site = dataset_train_ls[site_idx]
+        # ds_site = dataset_train_ls[site_idx]
         print("site:", site_idx)
         site_results_list, cell_count = map_barcodes_to_cells_by_overlays_whole_site(
-            ds_site,
+            site_idx,
             d_inf,
             dataset_dir,
             model_params,
             barcode_ref_array.astype(int),
+            seq_L,
             matched_flag,
         )
 
@@ -1193,8 +512,7 @@ def spot_level_to_cell_level_assignments(
 
     else:
 
-        ## If SSL without constraint, uncomment the below line
-        # Assign closest to reflib barcode to each cell
+        ### Assign closest to reflib barcode to each cell
         cells_called_perWell = (
             all_results_df.sort_values(["dist_2_ref"], ascending=True)
             .groupby(["Metadata_Site", "Parent_Cells"])
@@ -1223,11 +541,6 @@ def spot_level_to_cell_level_assignments(
     ngs_match = np.round(
         merged_ngs_dl["Fracs"].corr(merged_ngs_dl["Fraction_of_Reads"]), 2
     )
-    # print(site_idx,call_dl_df.shape[0])
-
-    # print(which_gpu, config.pretrained_model_path)
-    #     pdb.set_trace()
-    #     print(np.round(merged_ngs_dl['Fracs'].corr(merged_ngs_dl['Fraction_of_Reads']),2),call_dl_df.shape[0])
     cell_recovery_rate = np.round(call_dl_df.shape[0] / cell_count, 2)
 
     return ngs_match, cell_recovery_rate, call_dl_df

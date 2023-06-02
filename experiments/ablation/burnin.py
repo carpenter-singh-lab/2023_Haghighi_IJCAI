@@ -58,8 +58,8 @@ config.lr = 10 * config.LEARNING_RATE
 config.LEARNING_MOMENTUM = 0.5
 
 config.barcode_ref_array = barcode_ref_array
-config.load_cropped_presaved = True
-
+# config.load_cropped_presaved = True
+load_tiff_crop_online
 
 if label_quality == "LQ":
     MODEL_DIR = "./experiments/ablation/temp/init_teacher_by_lq"
