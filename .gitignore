@@ -4,7 +4,7 @@ experiments/ablation/init_teacher_by_hq/*
 experiments/plepi-iss/pseudo-labeler/*
 experiments/ablation/temp/*
 experiments/plepi-iss/temp/*
-
+documentation/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
