@@ -29,7 +29,8 @@
 We created a benchmark dataset of cells treated with a library of genetic reagents tagged with 186 barcodes of nine digits each. We provide two plate of cells consists of two rows and three columns of wells. Each well contains about 500000 single cells and 20 million four-channel spots in ISS images of nine cycles. Not all cells have spots, and some cells have more than one spot. Each well is imaged at 316 sites (locations) within the well; we used our in-house pipelines to correct for general microscopic illumination patterns on each image and align the images across cycles in order to correct for small differences in physical plate position on the microscope for each cycle’s imaging. The images are subsequently stitched, scaled, and recropped into 100 larger "pseudo-site" images. Each pseudo-site’s image dimensions are (x:5500, y:5500, channels:4, cycles:9). 
 
 This preprocessed dataset available at cell-painting-gallery s3 bucket as a bench-marking resource for developing computational barcode calling methods using ISS images.
-- [Link to the data in Gallery](x)
+- [Link to the images in cellpainting-gallery](https://cellpainting-gallery.s3.amazonaws.com/cpg0021-periscope/broad/images/20210124_6W_CP228/images_aligned_cropped)
+- [Link to the cell-overlays in cellpainting-gallery](https://cellpainting-gallery.s3.amazonaws.com/cpg0021-periscope/broad/workspace/analysis/20210124_6W_CP228)
 
 
 ### <a id="toc-ngs-resource"></a>A.2. Validation resource for cell-level barcode abundance in a pool of single cells.
