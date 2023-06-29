@@ -22,6 +22,7 @@ dependencies:
   - pip:
     - ruff
     - polars
+    - boto3
     - dvc
     - dvc-gdrive
     - backoff
