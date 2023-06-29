@@ -1,0 +1,29 @@
+[tool.poetry]
+name = "neocode"
+version = "0.1.0"
+description = "Barcode calling application for In Situ Sequencing images."
+authors = ["Ank <ank@leoank.me>"]
+readme = "README.md"
+packages = [{ include = "neocode", from = "src" }]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+
+[tool.poetry.dev-dependencies]
+pytest = "^5.2"
+black = "^23.3"
+ruff = "^0.0"
+build = "^0.10"
+twine = "^4.0"
+
+
+[tool.poetry.scripts]
+neocode = "neocode.cli:main"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+select = ["ANN", "C90", "D", "E", "F", "I", "N", "NPY", "PTH", "TID", "UP", "W"]
+exclude = ["vendor"]
