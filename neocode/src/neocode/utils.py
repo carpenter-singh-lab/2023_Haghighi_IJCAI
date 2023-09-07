@@ -70,6 +70,8 @@ def parallel(
     if len(iterable) < jobs:
         jobs = len(iterable)
     slices = slice_iterable(iterable, jobs)
+    print(f"Launching {jobs} parallel workers...")
     return Parallel(n_jobs=jobs, timeout=timeout)(
-        delayed(func)(chunk, *args) for chunk in [iterable[s] for s in slices]
+        delayed(func)(chunk, idx, *args)
+        for idx, chunk in enumerate([iterable[s] for s in slices])
     )

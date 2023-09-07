@@ -1,5 +1,4 @@
 """In Situ Sequencing images data module."""
-import os
 from pathlib import Path
 
 import boto3
@@ -50,7 +49,7 @@ def get_file_list(bucket: str, prefix: str | None = None) -> list[dict]:
 
 
 def download_from_s3(
-    file_key_list: list[str], bucket: str, prefix: str, write_path: Path
+    file_key_list: list[str], job_idx: int, bucket: str, prefix: str, write_path: Path
 ) -> Path:
     """Download file from s3 bucket.
 
@@ -58,6 +57,8 @@ def download_from_s3(
     ----------
     file_key_list : list[str]
         List of file name to download.
+    job_idx: int
+        Index of worker process.
     bucket : str
         Bucket identifier.
     prefix : str
@@ -75,9 +76,8 @@ def download_from_s3(
     NeocodeError
         Failed to download file from s3.
     """
-    for file_key in tqdm(
-        file_key_list, desc=f"Downloading files with worker {os.getpid()}"
-    ):
+    for file_key in (pbar := tqdm(file_key_list, position=job_idx)):
+        pbar.set_description(f"Downloading {file_key}")
         s3 = boto3.resource("s3")
         current_write_path = write_path.joinpath(
             file_key.replace(prefix, "").lstrip("/")
@@ -131,14 +131,18 @@ def download_iss(write_path: Path, force: bool = False, debug: bool = False) -> 
         file_size = 0
         for file in file_list:
             file_size = file_size + file["Size"]
-        print(
-            f"Downloading files for prefix: {prefix}\n",
-            f"Remaining download size: {round(file_size/(1024 * 1024))} MB\n",
-            f"Remaining files: {remaining_files}\n",
-        )
-        parallel(
-            [file["Key"] for file in file_list],
-            download_from_s3,
-            [S3_BUCKET_NAME, prefix, write_path],
-        )
+        if remaining_files > 0:
+            print(
+                f"Downloading files for prefix: {prefix}\n",
+                f"Remaining download size: {round(file_size/(1024 * 1024))} MB\n",
+                f"Remaining files: {remaining_files}\n",
+            )
+            parallel(
+                [file["Key"] for file in file_list],
+                download_from_s3,
+                [S3_BUCKET_NAME, prefix, write_path],
+                3,
+            )
+        else:
+            print(f"\nAll files are already downloaded for prefix: {prefix}")
         print("\n---------------------------------------------------------------\n")

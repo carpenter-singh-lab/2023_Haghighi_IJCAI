@@ -9,6 +9,7 @@ dependencies:
   - torchvision
   - lightning
   - numpy
+  - scikit-image
   - jupyterlab
   - click
   - black
