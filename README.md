@@ -1,7 +1,7 @@
 # Pseudo-Labeling Enhanced by Privileged Information and its application to In Situ Sequencing Images
 
 
- - [Link to Paper](will be added once published)
+ - [Link to Paper](https://www.ijcai.org/proceedings/2023/0531.pdf)
  - [Link to supplementary materials](https://github.com/carpenter-singh-lab/2023_Haghighi_IJCAI/blob/main/documentation/Haghighi_PLePI_ISS_IJCAI23_Supplementary_Materials.pdf)
  
  
