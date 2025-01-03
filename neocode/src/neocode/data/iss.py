@@ -76,7 +76,7 @@ def download_from_s3(
     NeocodeError
         Failed to download file from s3.
     """
-    for file_key in (pbar := tqdm(file_key_list, position=job_idx)):
+    for file_key in (pbar := tqdm(file_key_list, position=job_idx)) :
         pbar.set_description(f"Downloading {file_key}")
         s3 = boto3.resource("s3")
         current_write_path = write_path.joinpath(
