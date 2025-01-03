@@ -31,8 +31,10 @@ from barcodefit.dataobjects import spot, spot_utils
 def parse_args():
     parser = argparse.ArgumentParser(description="Table 2. Ablation studies")
 
-    parser.add_argument("--dataset_dir", help="the root dir for the dataset tiff images")
-    
+    parser.add_argument(
+        "--dataset_dir", help="the root dir for the dataset tiff images"
+    )
+
     parser.add_argument("--work_dir", help="the dir to save logs and models")
 
     parser.add_argument("--gpu_id", type=str, default="0")
@@ -56,7 +58,6 @@ def main():
     else:
         # use config filename as default work_dir if cfg.work_dir is None
         MODEL_DIR = "./experiments/ablation/temp/"
-        
 
     if args.gpu_id is not None:
         which_gpu = args.gpu_id
@@ -66,7 +67,8 @@ def main():
 
     # MODEL_DIR='./experiments/ablation/temp/'
 
-    batch='20210124_6W_CP228';batch_abbrev='CP228'
+    batch = "20210124_6W_CP228"
+    batch_abbrev = "CP228"
     plate = "A"
     well = "Well3"
 
@@ -77,14 +79,13 @@ def main():
     # which_gpu="6"
     os.environ["CUDA_VISIBLE_DEVICES"] = which_gpu
 
-    d_inf=[[batch,batch_abbrev],plate,well]
+    d_inf = [[batch, batch_abbrev], plate, well]
 
     # unlabled_site_ind = [42, 43]
     # test_sites_ind = [30]
-    
-    unlabled_site_ls=[12,25]
-    test_sites_ls=[70]
-    
+
+    unlabled_site_ls = [12, 25]
+    test_sites_ls = [70]
 
     ####### read metadata
     # (
@@ -96,12 +97,14 @@ def main():
     # ) = spot_utils.read_metadata(d_inf, args.dataset_dir, "train")
 
     metadata_dir = "./resource/"
-    barcode_ref_list, codebook, barcode_ref_array = spot_utils.read_barcode_list(metadata_dir)
-    
+    barcode_ref_list, codebook, barcode_ref_array = spot_utils.read_barcode_list(
+        metadata_dir
+    )
+
     ####### config model
     # batch = d_inf[0]
     config = spot.spotConfig()
-    config.batchplate_well=batch_abbrev+d_inf[1]+'_'+d_inf[2]
+    config.batchplate_well = batch_abbrev + d_inf[1] + "_" + d_inf[2]
 
     config.init_with = "fixed"
     config.assign_label_mode = "clustering"
@@ -110,10 +113,9 @@ def main():
 
     config.rpn_clustering = True
     config.barcode_ref_array = barcode_ref_array
-    
-    config.im_Dir=args.dataset_dir+'/'+batch+'/images_aligned_cropped/'
-    config.dl_meta_Dir=args.dataset_dir+'/workspace/DL_meta/'+batch+'/'
-    
+
+    config.im_Dir = args.dataset_dir + "/" + batch + "/images_aligned_cropped/"
+    config.dl_meta_Dir = args.dataset_dir + "/workspace/DL_meta/" + batch + "/"
 
     ##########################
     if label_quality == "LQ":
@@ -141,9 +143,9 @@ def main():
         config.layers_to_tune = "heads"
         config.STEPS_PER_EPOCH = 484
         config.update_teacher_n_batch = 1
-        
-        config.list_of_sites=unlabled_site_ls
-        config.val_list_of_sites=[61]
+
+        config.list_of_sites = unlabled_site_ls
+        config.val_list_of_sites = [61]
 
         model = modellib.MaskRCNN(mode="training", config=config, model_dir=MODEL_DIR)
         print(len(dataset_train_ls), len(dataset_val))
@@ -179,10 +181,8 @@ def main():
     config.RPN_TRAIN_ANCHORS_PER_IMAGE = 32 * 3 * 3
     model = modellib.MaskRCNN(mode="training", config=config, model_dir=MODEL_DIR)
 
-    
-    
     for site_i in test_sites_ls:
-        config.list_of_sites=[site_i]
+        config.list_of_sites = [site_i]
         out = model.evaluate_saved_model(
             learning_rate=config.lr,
             layers="all",

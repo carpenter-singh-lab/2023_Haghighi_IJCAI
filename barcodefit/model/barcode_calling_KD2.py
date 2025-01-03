@@ -1001,7 +1001,7 @@ class DetectionTargetLayer_barcode(KL.Layer):
             gt_boxes_batches.shape,
             gt_boxes.shape,
         )
-        
+
         #       (9, 3000, 4) (27000, 4) (None, 150, 4) (150, 4)
         #             proposals2 = KL.Lambda(lambda t: keras.backend.repeat_elements(tf.expand_dims(t, axis=0), proposals.shape[0], axis=0))(proposals_batches_merged)
 
@@ -3176,7 +3176,6 @@ class MaskRCNN(object):
                 lambda x: norm_boxes_graph(x, tf.shape(input_image)[1:3])
             )(input_gt_boxes)
 
-
         if callable(config.BACKBONE):
             _, C2, C3, C4, C5 = config.BACKBONE(
                 input_image, stage5=True, train_bn=config.TRAIN_BN
@@ -3378,7 +3377,6 @@ class MaskRCNN(object):
             name_prefix="teach_",
         )
 
-
         if config.img_aug:
             # Loop through pyramid layers
             layer_outputs = []  # list of lists
@@ -3493,8 +3491,6 @@ class MaskRCNN(object):
             else config.POST_NMS_ROIS_INFERENCE
         )
 
-
-
         rpn_rois = ProposalLayer(
             proposal_count=proposal_count,
             nms_threshold=config.RPN_NMS_THRESHOLD,
@@ -3531,13 +3527,11 @@ class MaskRCNN(object):
                     config, name="proposal_targets"
                 )([target_rois, input_gt_class_ids_byRPN, gt_boxes_byRPN])
 
-
             else:
 
                 rois, target_class_ids, target_bbox = DetectionTargetLayer(
                     config, name="proposal_targets"
                 )([target_rois, input_gt_class_ids, gt_boxes])
-
 
             def lambda_layer_ap(target_classes, layer_name):
                 ap = tf.numpy_function(
@@ -3591,7 +3585,6 @@ class MaskRCNN(object):
                     target_class_ids,
                     config,
                 )
-
 
                 NMI = KL.Lambda(
                     lambda t: lambda_nmi(
@@ -3918,8 +3911,6 @@ class MaskRCNN(object):
         exclude: list of layer names to exclude
         """
         self.keras_model.load_weights(filepath)
-
-
 
     def compile(self, learning_rate, momentum, clear_loss=True):
         """Gets the model ready for training. Adds losses, regularization, and

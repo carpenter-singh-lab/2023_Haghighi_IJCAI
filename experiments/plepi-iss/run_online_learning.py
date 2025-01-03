@@ -25,7 +25,8 @@ import pandas as pd
 import barcodefit.model.barcode_calling_KD2 as modellib
 from barcodefit.dataobjects import spot, spot_utils
 
-batch='20210124_6W_CP228';batch_abbrev='CP228'
+batch = "20210124_6W_CP228"
+batch_abbrev = "CP228"
 plate = "B"
 well = "Well4"
 
@@ -35,7 +36,7 @@ well = "Well4"
 which_gpu = "7"
 os.environ["CUDA_VISIBLE_DEVICES"] = which_gpu
 
-d_inf=[[batch,batch_abbrev],plate,well]
+d_inf = [[batch, batch_abbrev], plate, well]
 
 
 ##################### read metadata
@@ -48,12 +49,14 @@ d_inf=[[batch,batch_abbrev],plate,well]
 # ) = spot_utils.read_metadata(d_inf,dataset_dir, "train")
 
 metadata_dir = "./resource/"
-barcode_ref_list, codebook, barcode_ref_array = spot_utils.read_barcode_list(metadata_dir)
+barcode_ref_list, codebook, barcode_ref_array = spot_utils.read_barcode_list(
+    metadata_dir
+)
 
 ##################### config model
 # batch = d_inf[0]
 config = spot.spotConfig()
-config.batchplate_well=batch_abbrev+d_inf[1]+'_'+d_inf[2]
+config.batchplate_well = batch_abbrev + d_inf[1] + "_" + d_inf[2]
 
 config.init_with = "fixed"
 config.assign_label_mode = "clustering"
@@ -65,9 +68,9 @@ config.barcode_ref_array = barcode_ref_array
 config.pretrained_model_path = "./experiments/plepi-iss/pseudo-labeler"
 MODEL_DIR = "./experiments/plepi-iss/temp/"
 
-dataset_dir='/dgx1nas1/cellpainting-datasets/2018_11_20_Periscope_Calico/'
-config.im_Dir=dataset_dir+'/'+batch+'/images_aligned_cropped/'
-config.dl_meta_Dir=dataset_dir+'/workspace/DL_meta/'+batch+'/'
+dataset_dir = "/dgx1nas1/cellpainting-datasets/2018_11_20_Periscope_Calico/"
+config.im_Dir = dataset_dir + "/" + batch + "/images_aligned_cropped/"
+config.dl_meta_Dir = dataset_dir + "/workspace/DL_meta/" + batch + "/"
 
 ########################## Using unlabled data in a incremental online learning fashion
 config.pretrained_model_type = "class"
@@ -86,8 +89,8 @@ config.STEPS_PER_EPOCH = 484
 config.update_teacher_n_batch = 1
 config.TRAIN_ROIS_PER_IMAGE = 32 * 3 * 4
 config.RPN_TRAIN_ANCHORS_PER_IMAGE = 32 * 3 * 4
-config.list_of_sites=[21,16,60,19,47]
-config.val_list_of_sites=[49]
+config.list_of_sites = [21, 16, 60, 19, 47]
+config.val_list_of_sites = [49]
 model = modellib.MaskRCNN(mode="training", config=config, model_dir=MODEL_DIR)
 # print(len(dataset_train_ls),len(dataset_val))
 # pdb.set_trace()
@@ -109,7 +112,7 @@ test_sites = [60]
     cell_recovery_rate,
     call_dl_df,
 ) = spot_utils.spot_level_to_cell_level_assignments(
-    d_inf, test_sites,dataset_dir, model_params, matched_flag
+    d_inf, test_sites, dataset_dir, model_params, matched_flag
 )
 
 
