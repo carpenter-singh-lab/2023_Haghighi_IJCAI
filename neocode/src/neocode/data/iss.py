@@ -1,4 +1,5 @@
 """In Situ Sequencing images data module."""
+
 from pathlib import Path
 
 import boto3

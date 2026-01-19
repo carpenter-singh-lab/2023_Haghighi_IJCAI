@@ -171,7 +171,6 @@ class spotConfig(Config):
     load_tiff_crop_online = True
 
 
-
 ############################################################
 # Spots Dataset
 ############################################################
@@ -259,37 +258,43 @@ class spotsDataset(utils.Dataset):
 
         return image
 
+    def load_image_memmap(self, image_id, site_image, IMAGES_PER_GPU):
+        """Load the specified image and return a [H,W,nChannels] Numpy array."""
 
-    def load_image_memmap(self, image_id,site_image,IMAGES_PER_GPU):
-        """Load the specified image and return a [H,W,nChannels] Numpy array.
-        """
+        cycle = image_id % IMAGES_PER_GPU
+        crop_y_cent, crop_x_cent = round(
+            self.image_info[image_id]["im_Center_X"]
+        ), round(self.image_info[image_id]["im_Center_Y"])
 
-        cycle=image_id%IMAGES_PER_GPU
-        crop_y_cent,crop_x_cent=round(self.image_info[image_id]['im_Center_X']),round(self.image_info[image_id]['im_Center_Y'])
-        
-        cropped_im_dim=256;
-        cropped_im_dim_h=int(cropped_im_dim/2)
+        cropped_im_dim = 256
+        cropped_im_dim_h = int(cropped_im_dim / 2)
 
-        cr_br_x_b=int(crop_x_cent-cropped_im_dim_h)
-        cr_br_y_b=int(crop_y_cent-cropped_im_dim_h)
-        cr_br_x_t=int(crop_x_cent+cropped_im_dim_h)
-        cr_br_y_t=int(crop_y_cent+cropped_im_dim_h)
+        cr_br_x_b = int(crop_x_cent - cropped_im_dim_h)
+        cr_br_y_b = int(crop_y_cent - cropped_im_dim_h)
+        cr_br_x_t = int(crop_x_cent + cropped_im_dim_h)
+        cr_br_y_t = int(crop_y_cent + cropped_im_dim_h)
 
-        cr_image=np.squeeze(site_image[cycle,cr_br_x_b:cr_br_x_t,cr_br_y_b:cr_br_y_t,:])
+        cr_image = np.squeeze(
+            site_image[cycle, cr_br_x_b:cr_br_x_t, cr_br_y_b:cr_br_y_t, :]
+        )
 
-        cr_shapeX,cr_shapeY = cr_image.shape[0], cr_image.shape[1];
-        if cr_shapeX<cropped_im_dim or cr_shapeY<cropped_im_dim:
-            print('crxy:',cropped_im_dim-cr_shapeX,cropped_im_dim-cr_shapeY)
-            cr_image_corr = np.pad(cr_image, ((0, cropped_im_dim-cr_shapeX), (0, cropped_im_dim-cr_shapeY),\
-             (0, 0)),'constant', constant_values=(0))
+        cr_shapeX, cr_shapeY = cr_image.shape[0], cr_image.shape[1]
+        if cr_shapeX < cropped_im_dim or cr_shapeY < cropped_im_dim:
+            print("crxy:", cropped_im_dim - cr_shapeX, cropped_im_dim - cr_shapeY)
+            cr_image_corr = np.pad(
+                cr_image,
+                (
+                    (0, cropped_im_dim - cr_shapeX),
+                    (0, cropped_im_dim - cr_shapeY),
+                    (0, 0),
+                ),
+                "constant",
+                constant_values=(0),
+            )
         else:
-            cr_image_corr=cr_image
+            cr_image_corr = cr_image
 
-
-        return cr_image_corr        
-
-
-
+        return cr_image_corr
 
     def load_bbox(self, image_id):
         """Load instance masks for the given image.
@@ -343,7 +348,6 @@ class spotsDataset(utils.Dataset):
         else:
             # Call super class to return an empty mask
             return super(CocoDataset, self).load_mask(image_id)
-        
 
     def create_bbox(self, images3D):
         """Take input ISS multi-channel image of one cycle
@@ -413,7 +417,6 @@ class spotsDataset(utils.Dataset):
             return bboxes, class_ids
         else:
             return super(CocoDataset, self).load_mask(image_id)
-
 
     def load_overlay(self, image_id):
 
@@ -643,7 +646,6 @@ def read_crop_image(listOfPaths, center_list):
     image = np.stack(imagesList, axis=-1)
     mean_array = np.array([np.mean(image[:, :, i]) for i in range(image.shape[2])])
 
-
     cropped_im_dim = 256
     cropped_im_dim_h = int(cropped_im_dim / 2)
 
@@ -654,8 +656,6 @@ def read_crop_image(listOfPaths, center_list):
     print(image.shape)
     print(cr_br_x_b, cr_br_y_b, cr_br_x_t, cr_br_y_t)
     cr_image = image[cr_br_x_b:cr_br_x_t, cr_br_y_b:cr_br_y_t, :]
-
-
 
     cr_shapeX, cr_shapeY = cr_image.shape[0], cr_image.shape[1]
     if cr_shapeX < cropped_im_dim or cr_shapeY < cropped_im_dim:

@@ -1151,7 +1151,6 @@ def calculate_cluster_centroids(feat, labels, nClust):
 
 
 def reas_labels4(clustering_labels, pred_labels_forg, n_cl):
-
     """
     clustering_labels: kmeans output labels 0,1,2,3
     pred_labels_forg: current model prediction labels 0,1,2,3
@@ -1485,7 +1484,6 @@ def NMI_clus_class(
     log_dir,
     barcodeFolderName,
 ):
-
     """This function calculates NMI at each iteration and saves the barcodes for targets on a batch
 
     Inputs:
@@ -1678,7 +1676,6 @@ def NMI_clus_class2(
     log_dir,
     barcodeFolderName,
 ):
-
     """This function calculates NMI at each iteration and saves the barcodes for targets on a batch
 
     Inputs:
