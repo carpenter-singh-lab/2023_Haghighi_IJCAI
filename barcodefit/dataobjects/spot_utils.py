@@ -22,7 +22,7 @@ from . import spot
 
 
 ###############################################################
-def read_metadata(d_inf,dataset_dir, mode):
+def read_metadata(d_inf, dataset_dir, mode):
 
     if len(d_inf) > 3:
         return read_metadata_site(d_inf, dataset_dir, mode)
@@ -35,9 +35,9 @@ def read_metadata(d_inf,dataset_dir, mode):
 
 
 def read_metadata_well(d_inf, dataset_dir, mode):
-    
-    plate,well=d_inf[1],d_inf[2]
-    batch,batch_abbrev=d_inf[0]
+
+    plate, well = d_inf[1], d_inf[2]
+    batch, batch_abbrev = d_inf[0]
 
     #### directories
     #     dataset_dir='/storage/data/marziehhaghighi/pooledCP/'
@@ -79,6 +79,7 @@ def read_metadata_well(d_inf, dataset_dir, mode):
             ls_dfInfo = pickle.load(f)
 
         return [], ls_dfInfo, ls_data_train, [], barcode_ref_array
+
 
 ###############################################################
 
@@ -230,159 +231,226 @@ def read_results_to_df(training_results_file, epoch_filter_list):
 
 
 # #######################################################
-def map_barcodes_to_cells_by_overlays_whole_site(img_site, d_inf,dataset_dir,model_params,barcode_ref_array,seq_L,matched_flag):
+def map_barcodes_to_cells_by_overlays_whole_site(
+    img_site, d_inf, dataset_dir, model_params, barcode_ref_array, seq_L, matched_flag
+):
     """
     Assigns barcodes to cells
-    
+
     steps:
     - Read Overlay.png and Nuclei.csv files for the whole site
         The for each cropped image:
         - Form address for each image id barcodes detected
         - Read saved barcodes and locations through read_results_to_df call
         - Read the overlay to assign barcodes to cells through masks and detected centers
-    
-    """  
-    
-    
-    plate,well=d_inf[1],d_inf[2]
-    batch,batch_abbrev=d_inf[0]
 
-    dl_meta_Dir=dataset_dir+'/workspace/DL_meta/'+batch+'/'
-    
-    dfInfo3 = pd.read_csv(f'{dl_meta_Dir}df_Info_pcp_{batch_abbrev}{plate}_{well}_{img_site}_cp.csv')
-#     seq_L=int(dfInfo3['Metadata_Cycle'].max())
-    dfInfo_1=dfInfo3[["image_id","im_Center_X","im_Center_Y"]].sort_values(by='image_id').\
-                        drop_duplicates().reset_index(drop=True)
-    dfInfo_1["image_id_cr"] =list(range(0,dfInfo_1["image_id"].unique().shape[0]*seq_L,seq_L))   
+    """
 
+    plate, well = d_inf[1], d_inf[2]
+    batch, batch_abbrev = d_inf[0]
 
-    cropped_im_dim=256;orig_im_w=5500;
-    cropped_im_dim_h=int(cropped_im_dim/2)
-    
-    print("img_site",img_site)
-    
-    overlay_dir = os.path.join(dataset_dir, "workspace", "analysis",\
-               batch, batch_abbrev + plate+ "-"+ well + "-" + str(img_site), f"CorrDNA_Site_{img_site}_Overlay.png")
+    dl_meta_Dir = dataset_dir + "/workspace/DL_meta/" + batch + "/"
 
-    ov_im=resize(skimage.io.imread(overlay_dir), (orig_im_w,orig_im_w),mode='constant',preserve_range=True,order=0).astype('uint8')
-    
-    
-    nucl_csv=pd.read_csv(dataset_dir+"workspace/analysis/"+batch+"/"+batch_abbrev+plate+"-"+well+"-"+\
-        str(img_site)+"/Nuclei.csv")
-    print('nucl_csv',nucl_csv.shape,nucl_csv[nucl_csv['ObjectNumber']!=0].shape)
+    dfInfo3 = pd.read_csv(
+        f"{dl_meta_Dir}df_Info_pcp_{batch_abbrev}{plate}_{well}_{img_site}_cp.csv"
+    )
+    #     seq_L=int(dfInfo3['Metadata_Cycle'].max())
+    dfInfo_1 = (
+        dfInfo3[["image_id", "im_Center_X", "im_Center_Y"]]
+        .sort_values(by="image_id")
+        .drop_duplicates()
+        .reset_index(drop=True)
+    )
+    dfInfo_1["image_id_cr"] = list(
+        range(0, dfInfo_1["image_id"].unique().shape[0] * seq_L, seq_L)
+    )
 
-    
-    bins=np.array(range(128,5633,256))
-    single_feature_vals_discrete_x=np.digitize(nucl_csv.Location_Center_X.values, range(256,5633,256),right=True)
-    single_feature_vals_discrete_y=np.digitize(nucl_csv.Location_Center_Y.values, range(256,5633,256),right=True)
+    cropped_im_dim = 256
+    orig_im_w = 5500
+    cropped_im_dim_h = int(cropped_im_dim / 2)
 
-    nucl_csv['im_Center_X']=[bins[s] for s in single_feature_vals_discrete_x]
-    nucl_csv['im_Center_Y']=[bins[s] for s in single_feature_vals_discrete_y]
-    nucl_csv['Nuclei_Location_Center_X1']=nucl_csv['Location_Center_X']-nucl_csv['im_Center_X']+128
-    nucl_csv['Nuclei_Location_Center_Y1']=nucl_csv['Location_Center_Y']-nucl_csv['im_Center_Y']+128
-    
-    nucl_csv=nucl_csv.rename(columns={"ObjectNumber":"Parent_Cells",\
-      'Location_Center_X':'Nuclei_Location_Center_X','Location_Center_Y':'Nuclei_Location_Center_Y'})
-    
-    nucl_csv.loc[nucl_csv['Nuclei_Location_Center_Y1']>255,'Nuclei_Location_Center_Y1']=255
-    nucl_csv.loc[nucl_csv['Nuclei_Location_Center_X1']>255,'Nuclei_Location_Center_X1']=255
-#     dfInfo_site=dfInfo_comp[site_idx]
+    print("img_site", img_site)
 
-    cells_df_site = nucl_csv[["Parent_Cells","Nuclei_Location_Center_X1","Nuclei_Location_Center_Y1",\
-                            "Nuclei_Location_Center_X","Nuclei_Location_Center_Y",\
-                           "im_Center_X","im_Center_Y"]].astype(int)
-    
-    model_direc,epoch_filter_list=model_params
-    
-    
-    site_results_list=[]
-    saved_image_ids_inside_site=dfInfo_1["image_id_cr"].unique()
-#     saved_image_ids_inside_site=image_ids_inside_site[0::9]
-    for cr_im in saved_image_ids_inside_site:           
-        
-        training_results_file=model_direc+'/seqs'+matched_flag+'/im_id_'+str(img_site)+'_'+str(cr_im)+'.txt'    
+    overlay_dir = os.path.join(
+        dataset_dir,
+        "workspace",
+        "analysis",
+        batch,
+        batch_abbrev + plate + "-" + well + "-" + str(img_site),
+        f"CorrDNA_Site_{img_site}_Overlay.png",
+    )
+
+    ov_im = resize(
+        skimage.io.imread(overlay_dir),
+        (orig_im_w, orig_im_w),
+        mode="constant",
+        preserve_range=True,
+        order=0,
+    ).astype("uint8")
+
+    nucl_csv = pd.read_csv(
+        dataset_dir
+        + "workspace/analysis/"
+        + batch
+        + "/"
+        + batch_abbrev
+        + plate
+        + "-"
+        + well
+        + "-"
+        + str(img_site)
+        + "/Nuclei.csv"
+    )
+    print("nucl_csv", nucl_csv.shape, nucl_csv[nucl_csv["ObjectNumber"] != 0].shape)
+
+    bins = np.array(range(128, 5633, 256))
+    single_feature_vals_discrete_x = np.digitize(
+        nucl_csv.Location_Center_X.values, range(256, 5633, 256), right=True
+    )
+    single_feature_vals_discrete_y = np.digitize(
+        nucl_csv.Location_Center_Y.values, range(256, 5633, 256), right=True
+    )
+
+    nucl_csv["im_Center_X"] = [bins[s] for s in single_feature_vals_discrete_x]
+    nucl_csv["im_Center_Y"] = [bins[s] for s in single_feature_vals_discrete_y]
+    nucl_csv["Nuclei_Location_Center_X1"] = (
+        nucl_csv["Location_Center_X"] - nucl_csv["im_Center_X"] + 128
+    )
+    nucl_csv["Nuclei_Location_Center_Y1"] = (
+        nucl_csv["Location_Center_Y"] - nucl_csv["im_Center_Y"] + 128
+    )
+
+    nucl_csv = nucl_csv.rename(
+        columns={
+            "ObjectNumber": "Parent_Cells",
+            "Location_Center_X": "Nuclei_Location_Center_X",
+            "Location_Center_Y": "Nuclei_Location_Center_Y",
+        }
+    )
+
+    nucl_csv.loc[
+        nucl_csv["Nuclei_Location_Center_Y1"] > 255, "Nuclei_Location_Center_Y1"
+    ] = 255
+    nucl_csv.loc[
+        nucl_csv["Nuclei_Location_Center_X1"] > 255, "Nuclei_Location_Center_X1"
+    ] = 255
+    #     dfInfo_site=dfInfo_comp[site_idx]
+
+    cells_df_site = nucl_csv[
+        [
+            "Parent_Cells",
+            "Nuclei_Location_Center_X1",
+            "Nuclei_Location_Center_Y1",
+            "Nuclei_Location_Center_X",
+            "Nuclei_Location_Center_Y",
+            "im_Center_X",
+            "im_Center_Y",
+        ]
+    ].astype(int)
+
+    model_direc, epoch_filter_list = model_params
+
+    site_results_list = []
+    saved_image_ids_inside_site = dfInfo_1["image_id_cr"].unique()
+    #     saved_image_ids_inside_site=image_ids_inside_site[0::9]
+    for cr_im in saved_image_ids_inside_site:
+
+        training_results_file = (
+            model_direc
+            + "/seqs"
+            + matched_flag
+            + "/im_id_"
+            + str(img_site)
+            + "_"
+            + str(cr_im)
+            + ".txt"
+        )
         if os.path.exists(training_results_file):
             ### Read results saved during training
-            update_df=read_results_to_df(training_results_file,epoch_filter_list)
-            
+            update_df = read_results_to_df(training_results_file, epoch_filter_list)
+
             if 1:
-#                 find the closest reflin barcode
-#                 map_dict={'A':3,'T':4,'G':2,'C':1}
-                update_df['dist_2_ref'] = update_df.apply(
+                #                 find the closest reflin barcode
+                #                 map_dict={'A':3,'T':4,'G':2,'C':1}
+                update_df["dist_2_ref"] = update_df.apply(
                     lambda row: utils.map_to_barcode_min_Hdist(
-                        [int(row[str(i)]) for i in range(seq_L)], 
-                        barcode_ref_array
-                    )[1], 
-                    axis=1
+                        [int(row[str(i)]) for i in range(seq_L)], barcode_ref_array
+                    )[1],
+                    axis=1,
                 )
 
+            crop_y_cent, crop_x_cent = (
+                dfInfo_1.loc[
+                    dfInfo_1["image_id_cr"] == cr_im, ["im_Center_X", "im_Center_Y"]
+                ]
+                .round()
+                .astype(int)
+                .values[0]
+            )
 
-            crop_y_cent,crop_x_cent = dfInfo_1.loc[dfInfo_1['image_id_cr']==cr_im,\
-                                                   ["im_Center_X","im_Center_Y"]].round().astype(int).values[0]
+            ovly = np.zeros((cropped_im_dim, cropped_im_dim, 3))
 
-            ovly=np.zeros((cropped_im_dim, cropped_im_dim,3))
+            cr_br_x_b = crop_x_cent - cropped_im_dim_h
+            cr_br_y_b = crop_y_cent - cropped_im_dim_h
+            cr_br_x_t = np.min([crop_x_cent + cropped_im_dim_h, orig_im_w])
+            cr_br_y_t = np.min([crop_y_cent + cropped_im_dim_h, orig_im_w])
 
-            cr_br_x_b=crop_x_cent-cropped_im_dim_h
-            cr_br_y_b=crop_y_cent-cropped_im_dim_h
-            cr_br_x_t=np.min([crop_x_cent+cropped_im_dim_h,orig_im_w])
-            cr_br_y_t=np.min([crop_y_cent+cropped_im_dim_h,orig_im_w])
+            #             pdb.set_trace()
+            ovly[: (cr_br_x_t - cr_br_x_b), : (cr_br_y_t - cr_br_y_b), :] = ov_im[
+                cr_br_x_b:cr_br_x_t, cr_br_y_b:cr_br_y_t, :
+            ]
 
-#             pdb.set_trace()
-            ovly[:(cr_br_x_t-cr_br_x_b),:(cr_br_y_t-cr_br_y_b),:]=\
-            ov_im[cr_br_x_b:cr_br_x_t,cr_br_y_b:cr_br_y_t,:]
-
-
-
-            cells_df=cells_df_site[(cells_df_site['im_Center_X']==crop_y_cent) & (cells_df_site['im_Center_Y']==crop_x_cent)].reset_index(drop=True)
-
+            cells_df = cells_df_site[
+                (cells_df_site["im_Center_X"] == crop_y_cent)
+                & (cells_df_site["im_Center_Y"] == crop_x_cent)
+            ].reset_index(drop=True)
 
             from skimage.segmentation import flood_fill
-            cell_color=(255,255,255)
-            cell_bound=np.copy(ovly)
-            indices_not_w = np.where(~np.all(cell_bound == cell_color, axis=-1))
-            cell_bound[indices_not_w]=0
-            colored_cells=cell_bound[:,:,0].astype(int)
-            parent_cells=cells_df.Parent_Cells.unique().tolist()
-            for p in parent_cells:
-                cent_x,cent_y=cells_df.loc[cells_df['Parent_Cells']==p,["Nuclei_Location_Center_X1","Nuclei_Location_Center_Y1"]].values[0]
-                colored_cells = flood_fill(colored_cells,(cent_y,cent_x),p,connectivity=1)
 
-#             dct={1:'C',2:'G',3:'A',4:'T'} #was used for cp0228  
-            map_dict={'A':3,'T':4,'G':2,'C':1}
-            reverse_map_dict = {v: k for k, v in map_dict.items()}   
+            cell_color = (255, 255, 255)
+            cell_bound = np.copy(ovly)
+            indices_not_w = np.where(~np.all(cell_bound == cell_color, axis=-1))
+            cell_bound[indices_not_w] = 0
+            colored_cells = cell_bound[:, :, 0].astype(int)
+            parent_cells = cells_df.Parent_Cells.unique().tolist()
+            for p in parent_cells:
+                cent_x, cent_y = cells_df.loc[
+                    cells_df["Parent_Cells"] == p,
+                    ["Nuclei_Location_Center_X1", "Nuclei_Location_Center_Y1"],
+                ].values[0]
+                colored_cells = flood_fill(
+                    colored_cells, (cent_y, cent_x), p, connectivity=1
+                )
+
+            #             dct={1:'C',2:'G',3:'A',4:'T'} #was used for cp0228
+            map_dict = {"A": 3, "T": 4, "G": 2, "C": 1}
+            reverse_map_dict = {v: k for k, v in map_dict.items()}
 
             for c in range(seq_L):
-                update_df=update_df.replace({str(c): reverse_map_dict})
-
+                update_df = update_df.replace({str(c): reverse_map_dict})
 
             col_names = [str(i) for i in range(seq_L)]
-            p_col_names = ['p' + str(i) for i in range(seq_L)]
+            p_col_names = ["p" + str(i) for i in range(seq_L)]
 
             # Perform operations
-            update_df['Barcodes_called_dl'] = update_df[col_names].sum(axis=1)
-            update_df['Barcodes_called_sumP'] = update_df[p_col_names].sum(axis=1)
-            update_df['Barcodes_called_medP'] = update_df[p_col_names].median(axis=1)
-            update_df['Barcodes_called_prodP'] = update_df[p_col_names].product(axis=1)
-            
-            
+            update_df["Barcodes_called_dl"] = update_df[col_names].sum(axis=1)
+            update_df["Barcodes_called_sumP"] = update_df[p_col_names].sum(axis=1)
+            update_df["Barcodes_called_medP"] = update_df[p_col_names].median(axis=1)
+            update_df["Barcodes_called_prodP"] = update_df[p_col_names].product(axis=1)
 
-            bb_ys=update_df['bb_center_y'].astype(int).values
-            bb_xs=update_df['bb_center_x'].astype(int).values
+            bb_ys = update_df["bb_center_y"].astype(int).values
+            bb_xs = update_df["bb_center_x"].astype(int).values
 
-            update_df['Parent_Cells']=colored_cells[bb_ys,bb_xs]            
-            update_df['im_Center_X']=crop_y_cent
-            update_df['im_Center_Y']=crop_x_cent
-            
+            update_df["Parent_Cells"] = colored_cells[bb_ys, bb_xs]
+            update_df["im_Center_X"] = crop_y_cent
+            update_df["im_Center_Y"] = crop_x_cent
 
-            update_df['Metadata_Site']=img_site
-            update_df['image_id']=cr_im      
+            update_df["Metadata_Site"] = img_site
+            update_df["image_id"] = cr_im
 
-            site_results_list.append(update_df);
-       
-                 
+            site_results_list.append(update_df)
+
     return site_results_list, nucl_csv.shape[0]
-
-
 
 
 def read_ngs_counts_4target_well(ngs_csv_file, well):
@@ -437,7 +505,7 @@ def read_resize_overlay_pooled(overlay_dir, orig_im_w):
 def read_barcode_list(metadata_dir):
 
     map_dict = {"A": 3, "T": 4, "G": 2, "C": 1}
-    # reverse_map_dict = {v: k for k, v in map_dict.items()}   
+    # reverse_map_dict = {v: k for k, v in map_dict.items()}
 
     metadata_orig = pd.read_csv(metadata_dir + "CP228_Experimental_Codebook.csv")
     metadata_orig["prefix9"] = metadata_orig["sgRNA"].apply(lambda x: x[0:9])
@@ -458,11 +526,11 @@ def read_barcode_list(metadata_dir):
 
 
 def spot_level_to_cell_level_assignments(
-    d_inf, sites_ind,dataset_dir, model_params, matched_flag
+    d_inf, sites_ind, dataset_dir, model_params, matched_flag
 ):
 
     well = d_inf[2]
-    seq_L=9
+    seq_L = 9
     ngs_csv_file = "./resource/CP228_NGS_Reads_And_Library_Mapped.csv"
     ngs_counts = read_ngs_counts_4target_well(ngs_csv_file, well)
 

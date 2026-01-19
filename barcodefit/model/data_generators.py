@@ -70,13 +70,12 @@ Author:
 Marzieh Haghighi
 """
 
-
 import math
 import pdb
-import skimage.io
-import pandas as pd
 
 import numpy as np
+import pandas as pd
+import skimage.io
 import tensorflow.keras as keras
 import tensorflow.keras.utils as KU
 
@@ -109,7 +108,6 @@ class DataGenerator(KU.Sequence):
         detection_targets=False,
         no_augmentation_sources=None,
     ):
-
         """Initialization
         dataset_inp: is a list of dataobjects for all sites -> len=number of sites
         dataset: The Dataset object to pick data from
@@ -129,8 +127,8 @@ class DataGenerator(KU.Sequence):
         self.epoch = -1
         self.site_step = config.starting_site  # -1#20
         # self.dataset_inp = dataset_inp
-        self.list_of_sites= list_of_sites
-        self.n_total_sites=len(list_of_sites)
+        self.list_of_sites = list_of_sites
+        self.n_total_sites = len(list_of_sites)
         self.config = config
         self.augment = augment
         self.augmentation = augmentation
@@ -178,7 +176,7 @@ class DataGenerator(KU.Sequence):
         #         When site_step or epoch exceeds number of sites in the list of dataset_inp, we again go through
         #         the list from start
         # dataset = self.dataset_inp[self.site_step % self.n_total_sites]
-        dataset=self.ds_site
+        dataset = self.ds_site
 
         #         print('epoch: ', self.epoch)
         #         print('Site: ', int(dataset.image_info[0]["site"]))
@@ -393,17 +391,20 @@ class DataGenerator(KU.Sequence):
         #         self.indexes = np.arange(len(self.list_IDs))
         self.site_step += 1
         self.epoch += 1
-        
+
         site = self.list_of_sites[self.site_step % self.n_total_sites]
-        self.site_image=load_site_tiff_raw_images(self.config.im_Dir,self.config.batchplate_well, site)       
-        
-        self.ds_site=load_site_metadata_online(self.config.dl_meta_Dir,self.config.batchplate_well,\
-                                               site,self.config.IMAGES_PER_GPU);        
-        
-        self.indexes = np.arange(0,len(self.ds_site.image_ids),self.batch_size)
-        
- 
-        
+        self.site_image = load_site_tiff_raw_images(
+            self.config.im_Dir, self.config.batchplate_well, site
+        )
+
+        self.ds_site = load_site_metadata_online(
+            self.config.dl_meta_Dir,
+            self.config.batchplate_well,
+            site,
+            self.config.IMAGES_PER_GPU,
+        )
+
+        self.indexes = np.arange(0, len(self.ds_site.image_ids), self.batch_size)
 
     def on_test_batch_end(self):
         self.site_step += 1
@@ -420,8 +421,6 @@ class DataGenerator(KU.Sequence):
 # #         self.epoch+=1
 #         print("site_step",self.site_step)
 #         self.indexes = np.arange(0,len(self.dataset_inp[self.site_step % self.n_total_sites].image_ids),self.batch_size)
-
-
 
 
 ############################################################
@@ -455,7 +454,7 @@ def load_image_gt(
     if config.load_cropped_presaved:
         image = dataset.load_image_cr_presaved(image_id, config.batchplate_well)
     elif config.load_tiff_crop_online:
-        image = dataset.load_image_memmap(image_id,site_image,config.IMAGES_PER_GPU)
+        image = dataset.load_image_memmap(image_id, site_image, config.IMAGES_PER_GPU)
     else:
         image = dataset.load_image(image_id)
 
@@ -507,11 +506,10 @@ def load_image_gt(
 
 
 def load_site_tiff_raw_images(im_Dir, batchplate_well, site):
-     
-    parent_folder=im_Dir+batchplate_well #cp228    
-        
-        
-    channels = ["C","G","A","T"]
+
+    parent_folder = im_Dir + batchplate_well  # cp228
+
+    channels = ["C", "G", "A", "T"]
 
     # Preallocate array
     images4D = np.zeros((9, 5500, 5500, len(channels)), dtype=np.uint8)
@@ -519,7 +517,7 @@ def load_site_tiff_raw_images(im_Dir, batchplate_well, site):
     for cycle in range(9):
         for channel_idx, channel in enumerate(channels):
             # Form the filename
-            filename = f'{parent_folder}/Cycle0{cycle+1}_{channel}/Cycle0{cycle+1}_{channel}_Site_{site}.tiff'
+            filename = f"{parent_folder}/Cycle0{cycle+1}_{channel}/Cycle0{cycle+1}_{channel}_Site_{site}.tiff"
 
             # Load the image
             im_uint16 = skimage.io.imread(filename).squeeze()
@@ -533,33 +531,42 @@ def load_site_tiff_raw_images(im_Dir, batchplate_well, site):
 
     return images4D
 
+
 def load_site_metadata_online2(meta_Dir, batchplate_well, site, n_seq):
     # Read CSV data
-    dfInfo3 = pd.read_csv(f'{meta_Dir}df_Info_pcp_{batchplate_well}_{site}_cp.csv')
+    dfInfo3 = pd.read_csv(f"{meta_Dir}df_Info_pcp_{batchplate_well}_{site}_cp.csv")
 
     # Expand the compact format
-    dfInfo3 = pd.concat([dfInfo3.assign(Metadata_Cycle=i+1) for i in range(n_seq)]).reset_index(drop=True)
+    dfInfo3 = pd.concat(
+        [dfInfo3.assign(Metadata_Cycle=i + 1) for i in range(n_seq)]
+    ).reset_index(drop=True)
 
     # Prepare new columns
     dfInfo3["image_id2"] = dfInfo3["image_id"]
-    dfInfo3["cat_id"] = dfInfo3.apply(lambda x: eval(x['BarcodeList_cat_id'])[x['Metadata_Cycle']-1], axis=1)
+    dfInfo3["cat_id"] = dfInfo3.apply(
+        lambda x: eval(x["BarcodeList_cat_id"])[x["Metadata_Cycle"] - 1], axis=1
+    )
 
     # Update image_id based on unique figures
-    uniq_figs = dfInfo3.groupby(["image_id2","Metadata_Cycle"]).ngroup()
+    uniq_figs = dfInfo3.groupby(["image_id2", "Metadata_Cycle"]).ngroup()
     dfInfo3["image_id"] = uniq_figs
 
     # Prepare mapping dictionaries
-    map_dict = {'A':3,'T':4,'G':2,'C':1}
+    map_dict = {"A": 3, "T": 4, "G": 2, "C": 1}
     reverse_map_dict = {v: k for k, v in map_dict.items()}
 
     # Apply the reverse mapping
-    dfInfo3["Metadata_Label"] = dfInfo3["cat_id"].astype(str).str[0].map(reverse_map_dict)
+    dfInfo3["Metadata_Label"] = (
+        dfInfo3["cat_id"].astype(str).str[0].map(reverse_map_dict)
+    )
 
     # Update selected columns
-    dfInfo3[["bbox", "Location_Center_X", "Location_Center_Y"]] = dfInfo3[["bbox1", "Location_Center_X1", "Location_Center_Y1"]]
+    dfInfo3[["bbox", "Location_Center_X", "Location_Center_Y"]] = dfInfo3[
+        ["bbox1", "Location_Center_X1", "Location_Center_Y1"]
+    ]
 
     # Assign subset_label to "train" directly
-    dfInfo3['subset_label'] = "train"
+    dfInfo3["subset_label"] = "train"
 
     # Prepare the dataset
     dataset_train_site = spot.spotsDataset()
@@ -571,31 +578,39 @@ def load_site_metadata_online2(meta_Dir, batchplate_well, site, n_seq):
 
 def load_site_metadata_online(meta_Dir, batchplate_well, site, n_seq):
     # Read CSV data
-    dfInfo3 = pd.read_csv(f'{meta_Dir}df_Info_pcp_{batchplate_well}_{site}_cp.csv')
+    dfInfo3 = pd.read_csv(f"{meta_Dir}df_Info_pcp_{batchplate_well}_{site}_cp.csv")
 
     # Expand the compact format
-    dfInfo3 = pd.concat([dfInfo3.assign(Metadata_Cycle=i+1) for i in range(n_seq)]).reset_index(drop=True)
+    dfInfo3 = pd.concat(
+        [dfInfo3.assign(Metadata_Cycle=i + 1) for i in range(n_seq)]
+    ).reset_index(drop=True)
 
     # Prepare new columns
     dfInfo3["image_id2"] = dfInfo3["image_id"]
-    dfInfo3["cat_id"] = dfInfo3.apply(lambda x: eval(x['BarcodeList_cat_id'])[x['Metadata_Cycle']-1], axis=1)
+    dfInfo3["cat_id"] = dfInfo3.apply(
+        lambda x: eval(x["BarcodeList_cat_id"])[x["Metadata_Cycle"] - 1], axis=1
+    )
 
     # Update image_id based on unique figures
-    uniq_figs = dfInfo3.groupby(["image_id2","Metadata_Cycle"]).ngroup()
+    uniq_figs = dfInfo3.groupby(["image_id2", "Metadata_Cycle"]).ngroup()
     dfInfo3["image_id"] = uniq_figs
 
     # Prepare mapping dictionaries
-    map_dict = {'A':3,'T':4,'G':2,'C':1}
+    map_dict = {"A": 3, "T": 4, "G": 2, "C": 1}
     reverse_map_dict = {v: k for k, v in map_dict.items()}
 
     # Apply the reverse mapping
-    dfInfo3["Metadata_Label"] = dfInfo3["cat_id"].astype(str).str[0].map(reverse_map_dict)
+    dfInfo3["Metadata_Label"] = (
+        dfInfo3["cat_id"].astype(str).str[0].map(reverse_map_dict)
+    )
 
     # Update selected columns
-    dfInfo3[["bbox", "Location_Center_X", "Location_Center_Y"]] = dfInfo3[["bbox1", "Location_Center_X1", "Location_Center_Y1"]]
+    dfInfo3[["bbox", "Location_Center_X", "Location_Center_Y"]] = dfInfo3[
+        ["bbox1", "Location_Center_X1", "Location_Center_Y1"]
+    ]
 
     # Assign subset_label to "train" directly
-    dfInfo3['subset_label'] = "train"
+    dfInfo3["subset_label"] = "train"
 
     # Prepare the dataset
     dataset_train_site = spot.spotsDataset()
@@ -606,13 +621,13 @@ def load_site_metadata_online(meta_Dir, batchplate_well, site, n_seq):
 
 
 # def load_site_metadata_online(meta_Dir,batchplate_well, site,n_seq):
-    
-#     dfInfo3 = pd.read_csv(meta_Dir+'df_Info_pcp_'+batchplate_well+'_'+str(site)+'_cp.csv') 
+
+#     dfInfo3 = pd.read_csv(meta_Dir+'df_Info_pcp_'+batchplate_well+'_'+str(site)+'_cp.csv')
 # #     dfInfo3['im_paths']=dfInfo3['im_paths'].apply(lambda x: correct_address(eval(x)))
-    
+
 # #     dfInfo3=dfInfo3.rename(columns={"Barcode_BarcodeCalled":"Barcode_BarcodeCalled_simple"})
-# #     dfInfo3=dfInfo3.rename(columns={"Barcode_BarcodeCalled_cp":"Barcode_BarcodeCalled"})    
-    
+# #     dfInfo3=dfInfo3.rename(columns={"Barcode_BarcodeCalled_cp":"Barcode_BarcodeCalled"})
+
 #         ###### Expand the compact format
 #     list_ofCycles=[]
 
@@ -641,8 +656,8 @@ def load_site_metadata_online(meta_Dir, batchplate_well, site, n_seq):
 
 # #     if batch_abbrv=='CP074':
 # #         map_dict={'A':1,'T':2,'C':3,'G':4} #was used for cp074
-# #     elif batch_abbrv=='CP228':   
-#     map_dict={'A':3,'T':4,'G':2,'C':1} #was used for cp0228  
+# #     elif batch_abbrv=='CP228':
+#     map_dict={'A':3,'T':4,'G':2,'C':1} #was used for cp0228
 # #     im_orig_size=5500
 
 
@@ -666,10 +681,8 @@ def load_site_metadata_online(meta_Dir, batchplate_well, site, n_seq):
 #     dataset_train_site.load_spots(dfInfo,"train")
 #     dataset_train_site.prepare()
 
-               
+
 #     return dataset_train_site
-
-
 
 
 def compute_backbone_shapes(config, image_shape):

@@ -5,23 +5,23 @@ The base code of this script is Matterport implementation of Mask R-CNN model Wr
 
 * Config the model:
   - call the spot.spotConfig() and add to that
-  
+
 * initialize the model class:
-  - model = modellib.MaskRCNN(mode="training", config=config, model_dir=MODEL_DIR) 
+  - model = modellib.MaskRCNN(mode="training", config=config, model_dir=MODEL_DIR)
     - in this init network architecture is built: self.keras_model = self.build(mode=mode, config=config)
       self.build builds the whole multi-task learning framework of maskrcnn
-      
-      
+
+
 * initialize the model weights:
   - model.load_weights()
-  
+
 * train the model:
-  -  model.train(dataset_train, dataset_val, learning_rate=config.lr,epochs=200, layers=config.layers_to_tune); 
-     - creates train_generator, val_generator       
+  -  model.train(dataset_train, dataset_val, learning_rate=config.lr,epochs=200, layers=config.layers_to_tune);
+     - creates train_generator, val_generator
      - call self.keras_model.fit_generator function
 
 
-Author: 
+Author:
 Marzieh Haghighi
 """
 
@@ -1001,7 +1001,7 @@ class DetectionTargetLayer_barcode(KL.Layer):
             gt_boxes_batches.shape,
             gt_boxes.shape,
         )
-        
+
         #       (9, 3000, 4) (27000, 4) (None, 150, 4) (150, 4)
         #             proposals2 = KL.Lambda(lambda t: keras.backend.repeat_elements(tf.expand_dims(t, axis=0), proposals.shape[0], axis=0))(proposals_batches_merged)
 
@@ -2449,9 +2449,9 @@ def sklearn_kmeans_foreground(
                     psudo_labels_based_on_clustering_reshaped[:, s] = matched_bc
                 else:
                     #                     psudo_labels_based_on_clustering_reshaped[:,s]=0
-                    psudo_labels_based_on_clustering_reshaped[
-                        :, s
-                    ] = pred_labels_arr_reshaped[:, s]
+                    psudo_labels_based_on_clustering_reshaped[:, s] = (
+                        pred_labels_arr_reshaped[:, s]
+                    )
 
                 print("matched ", selected_bc_prob)
             print("matched_bc", psudo_labels_based_on_clustering_reshaped[:, s])
@@ -2729,7 +2729,7 @@ def smooth_l1_loss(y_true, y_pred):
     """
     diff = tf.math.abs(y_true - y_pred)
     less_than_one = tf.cast(tf.math.less(diff, 1.0), "float32")
-    loss = (less_than_one * 0.5 * diff ** 2) + (1 - less_than_one) * (diff - 0.5)
+    loss = (less_than_one * 0.5 * diff**2) + (1 - less_than_one) * (diff - 0.5)
     return loss
 
 
@@ -3098,7 +3098,7 @@ class MaskRCNN(object):
 
         # Image size must be dividable by 2 multiple times
         h, w = config.IMAGE_SHAPE[:2]
-        if h / 2 ** 6 != int(h / 2 ** 6) or w / 2 ** 6 != int(w / 2 ** 6):
+        if h / 2**6 != int(h / 2**6) or w / 2**6 != int(w / 2**6):
             raise Exception(
                 "Image size must be dividable by 2 at least 6 times "
                 "to avoid fractions when downscaling and upscaling."
@@ -3175,7 +3175,6 @@ class MaskRCNN(object):
             gt_boxes = KL.Lambda(
                 lambda x: norm_boxes_graph(x, tf.shape(input_image)[1:3])
             )(input_gt_boxes)
-
 
         if callable(config.BACKBONE):
             _, C2, C3, C4, C5 = config.BACKBONE(
@@ -3378,7 +3377,6 @@ class MaskRCNN(object):
             name_prefix="teach_",
         )
 
-
         if config.img_aug:
             # Loop through pyramid layers
             layer_outputs = []  # list of lists
@@ -3493,8 +3491,6 @@ class MaskRCNN(object):
             else config.POST_NMS_ROIS_INFERENCE
         )
 
-
-
         rpn_rois = ProposalLayer(
             proposal_count=proposal_count,
             nms_threshold=config.RPN_NMS_THRESHOLD,
@@ -3531,13 +3527,11 @@ class MaskRCNN(object):
                     config, name="proposal_targets"
                 )([target_rois, input_gt_class_ids_byRPN, gt_boxes_byRPN])
 
-
             else:
 
                 rois, target_class_ids, target_bbox = DetectionTargetLayer(
                     config, name="proposal_targets"
                 )([target_rois, input_gt_class_ids, gt_boxes])
-
 
             def lambda_layer_ap(target_classes, layer_name):
                 ap = tf.numpy_function(
@@ -3591,7 +3585,6 @@ class MaskRCNN(object):
                     target_class_ids,
                     config,
                 )
-
 
                 NMI = KL.Lambda(
                     lambda t: lambda_nmi(
@@ -3918,8 +3911,6 @@ class MaskRCNN(object):
         exclude: list of layer names to exclude
         """
         self.keras_model.load_weights(filepath)
-
-
 
     def compile(self, learning_rate, momentum, clear_loss=True):
         """Gets the model ready for training. Adds losses, regularization, and
@@ -4382,10 +4373,8 @@ class MaskRCNN(object):
                     else:
                         if 0:
                             #                         if source_layer.get_config() != target_layer.get_config():
-                            print(
-                                f"Source layer '{layer_name}' and target layer '\
-                            {layer_name}' must have the same configuration."
-                            )
+                            print(f"Source layer '{layer_name}' and target layer '\
+                            {layer_name}' must have the same configuration.")
                             print(source_layer.get_config())
                             print(target_layer.get_config())
 
